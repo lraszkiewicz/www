@@ -1,11 +1,14 @@
 import os
 import sys
 import xlrd
+import locale
 import shutil
 
 from slugify import slugify
 from collections import defaultdict
 from jinja2 import Template
+
+locale.setlocale(locale.LC_ALL, 'pl_PL.UTF-8')
 
 results_dir = './results'  # for election results
 out_dir = './out'  # for HTML output
@@ -28,7 +31,7 @@ voievodeship_of_district = {
 
 voievodeships = defaultdict(set)  # województwa
 districts = defaultdict(set)  # okręgi wyborcze
-municipalities = defaultdict(list)  # gminy
+municipalities = {}  # gminy
 
 candidates = []
 stats = []
@@ -50,8 +53,10 @@ if os.path.isdir(results_dir):
                 row['Nr okr.'] = int(row['Nr okr.'])
                 row['Nr obw.'] = int(row['Nr obw.'])
                 voievodeships[voievodeship_of_district[row['Nr okr.']]].add(row['Nr okr.'])
-                districts[row['Nr okr.']].add(row['Gmina'])
-                municipalities[row['Gmina']].append(row)
+                districts[row['Nr okr.']].add((row['Kod gminy'], row['Gmina']))
+                if not row['Kod gminy'] in municipalities:
+                    municipalities[row['Kod gminy']] = (row['Gmina'], [])
+                municipalities[row['Kod gminy']][1].append(row)
 else:
     print('Directory {} does not exist.'.format(results_dir))
     sys.exit(0)
@@ -66,37 +71,54 @@ with open('./templates/results.html') as f:
 for v in voievodeships:
     v_dir = os.path.join(out_dir, slugify(v))
     v_results = defaultdict(int)
+    v_children = []
     os.makedirs(v_dir)
-    with open(os.path.join(v_dir, 'index.html'), 'w') as fv:
-        for d in sorted(voievodeships[v]):
-            fv.write('Okręg nr {}<br \>'.format(d))
-            d_dir = os.path.join(v_dir, 'okreg_{}'.format(d))
-            d_results = defaultdict(int)
-            d_children = []
-            os.makedirs(d_dir)
-            for m in districts[d]:
-                m_dir = os.path.join(d_dir, slugify(m))
-                m_results = defaultdict(int)
-                os.makedirs(m_dir)
-                with open(os.path.join(m_dir, 'index.html'), 'w') as fm:
-                    fm.write(template.render(
-                        breadcrumb=[('../../..', 'Polska'), ('../../', v), ('../', 'Okręg nr {}'.format(d))],
-                        title=m,
-                        headers=['Nr obw.', 'Adres'] + stats + candidates,
-                        children=municipalities[m],
-                        link=''
-                    ))
-                for row in municipalities[m]:
-                    for x in stats + candidates:
-                        m_results[x] += row[x]
-                m_results['Gmina'] = m
-                m_results['slug'] = slugify(m)
-                d_children.append(m_results)
-            with open(os.path.join(d_dir, 'index.html'), 'w') as fd:
-                fd.write(template.render(
-                    title='Okręg nr {}'.format(d),
-                    headers=['Gmina'] + stats + candidates,
-                    children=sorted(d_children, key=lambda k: k['Gmina']),
-                    link='Gmina'
+    for d in sorted(voievodeships[v]):
+        print('OKREG {}'.format(d))
+        d_dir = os.path.join(v_dir, slugify('Okręg {}'.format(d)))
+        d_results = defaultdict(int)
+        d_children = []
+        os.makedirs(d_dir)
+        for m_id, m_name in districts[d]:
+            m_dir = os.path.join(d_dir, slugify('{} {}'.format(m_name, m_id)))
+            m_results = defaultdict(int)
+            os.makedirs(m_dir)
+            for row in municipalities[m_id][1]:
+                for x in stats + candidates:
+                    m_results[x] += row[x]
+                    d_results[x] += row[x]
+                    v_results[x] += row[x]
+            m_results['Gmina'] = m_name
+            m_results['slug'] = slugify('{} {}'.format(m_name, m_id))
+            d_children.append(m_results)
+            with open(os.path.join(m_dir, 'index.html'), 'w') as fm:
+                fm.write(template.render(
+                    breadcrumb=[('../../../', 'Polska'), ('../../', v), ('../', 'Okręg nr {}'.format(d))],
+                    title=m_name,
+                    headers=['Nr obw.', 'Adres'] + stats + candidates,
+                    children=sorted(municipalities[m_id][1], key=lambda k: k['Nr obw.']),
+                    results=m_results,
+                    stats=stats,
+                    candidates=candidates,
+                    children_name='obwodach',
+                    type='gminie'
                 ))
-
+        with open(os.path.join(d_dir, 'index.html'), 'w') as fd:
+            fd.write(template.render(
+                breadcrumb=[('../../', 'Polska'), ('../', v)],
+                title='Okręg nr {}'.format(d),
+                headers=['Gmina'] + stats + candidates,
+                children=sorted(d_children, key=lambda k: locale.strxfrm(k['Gmina'])),
+                link='Gmina'
+            ))
+        d_results['Nr okr.'] = d
+        d_results['slug'] = slugify('Okręg {}'.format(d))
+        v_children.append(d_results)
+    with open(os.path.join(v_dir, 'index.html'), 'w') as fv:
+        fv.write(template.render(
+            breadcrumb=[('../', 'Polska')],
+            title='{}'.format(v),
+            headers=['Nr okr.'] + stats + candidates,
+            children=sorted(v_children, key=lambda k: k['Nr okr.']),
+            link='Nr okr.'
+        ))
