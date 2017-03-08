@@ -109,7 +109,12 @@ for v in voievodeships:
                 title='Okręg nr {}'.format(d),
                 headers=['Gmina'] + stats + candidates,
                 children=sorted(d_children, key=lambda k: locale.strxfrm(k['Gmina'])),
-                link='Gmina'
+                link='Gmina',
+                results=d_results,
+                stats=stats,
+                candidates=candidates,
+                children_name='gminach',
+                type='okręgu'
             ))
         d_results['Nr okr.'] = d
         d_results['slug'] = slugify('Okręg {}'.format(d))
@@ -120,5 +125,10 @@ for v in voievodeships:
             title='{}'.format(v),
             headers=['Nr okr.'] + stats + candidates,
             children=sorted(v_children, key=lambda k: k['Nr okr.']),
-            link='Nr okr.'
+            link='Nr okr.',
+            results=v_results,
+            stats=stats,
+            candidates=candidates,
+            children_name='województwach',
+            type='Polsce'
         ))

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>{{ title }} - Wybory Prezydenta Rzeczypospolitej Polskiej 2000</title>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
@@ -11,7 +12,28 @@
             border-top: 0;
         }
     </style>
-    <title>{{ title }} - Wybory Prezydenta Rzeczypospolitej Polskiej 2000</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {packages: ['corechart', 'bar']});
+        google.charts.setOnLoadCallback(drawBasic);
+
+        function drawBasic() {
+            var data = google.visualization.arrayToDataTable([
+                ['Kandydat', 'Liczba głosów'],
+                {% for candidate in candidates %}
+                    ['{{ candidate }}', {{ results[candidate] }}],
+                {% endfor %}
+            ]);
+            var options = {
+                chartArea: {width: '50%'},
+                hAxis: {
+                    minValue: 0
+                }
+            };
+            var chart = new google.visualization.BarChart(document.getElementById('chart_div'));
+            chart.draw(data, options);
+            }
+    </script>
 </head>
 <body>
     <nav class="navbar navbar-default navbar-static-top">
@@ -38,11 +60,13 @@
                                 <tr>
                                     <th>{{ candidate }}</th>
                                     <td>{{ results[candidate] }}</td>
+                                    <td>{{ '%0.2f' | format(results[candidate] / results['Głosy ważne'] * 100.0) }}%</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+                <div id="chart_div" style="height: 400px;"></div>
             </div>
             <div class="col-md-6">
                 <div class="page-header"><h3>Statystyki</h3></div>
@@ -55,6 +79,10 @@
                                     <td>{{ results[stat] }}</td>
                                 </tr>
                             {% endfor %}
+                        <tr>
+                            <th>Frekwencja</th>
+                            <td>{{ '%0.2f' | format(results['Wydane karty'] / results['Uprawnieni'] * 100.0) }}%</td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
