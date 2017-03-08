@@ -80,19 +80,23 @@ for v in voievodeships:
                 os.makedirs(m_dir)
                 with open(os.path.join(m_dir, 'index.html'), 'w') as fm:
                     fm.write(template.render(
-                        title='Gmina {}'.format(m),
+                        breadcrumb=[('../../..', 'Polska'), ('../../', v), ('../', 'Okręg nr {}'.format(d))],
+                        title='m',
                         headers=['Nr obw.', 'Adres'] + stats + candidates,
-                        children=municipalities[m]
+                        children=municipalities[m],
+                        link=''
                     ))
                 for row in municipalities[m]:
                     for x in stats + candidates:
                         m_results[x] += row[x]
                 m_results['Gmina'] = m
+                m_results['slug'] = slugify(m)
                 d_children.append(m_results)
             with open(os.path.join(d_dir, 'index.html'), 'w') as fd:
                 fd.write(template.render(
-                    title='Okręg {}'.format(d),
+                    title='Okręg nr {}'.format(d),
                     headers=['Gmina'] + stats + candidates,
-                    children=sorted(d_children, key=lambda k: k['Gmina'])
+                    children=sorted(d_children, key=lambda k: k['Gmina']),
+                    link='Gmina'
                 ))
 
