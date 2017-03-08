@@ -69,12 +69,12 @@ with open('./templates/results.html') as f:
     template = Template(f.read())
 
 for v in voievodeships:
+    print(v)
     v_dir = os.path.join(out_dir, slugify(v))
     v_results = defaultdict(int)
     v_children = []
     os.makedirs(v_dir)
     for d in sorted(voievodeships[v]):
-        print('OKREG {}'.format(d))
         d_dir = os.path.join(v_dir, slugify('Okręg {}'.format(d)))
         d_results = defaultdict(int)
         d_children = []
