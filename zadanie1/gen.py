@@ -68,6 +68,8 @@ os.makedirs(out_dir)
 with open('./templates/results.html') as f:
     template = Template(f.read())
 
+c_results = defaultdict(int)
+c_children = []
 for v in voievodeships:
     print(v)
     v_dir = os.path.join(out_dir, slugify(v))
@@ -88,6 +90,7 @@ for v in voievodeships:
                     m_results[x] += row[x]
                     d_results[x] += row[x]
                     v_results[x] += row[x]
+                    c_results[x] += row[x]
             m_results['Gmina'] = m_name
             m_results['slug'] = slugify('{} {}'.format(m_name, m_id))
             d_children.append(m_results)
@@ -129,6 +132,23 @@ for v in voievodeships:
             results=v_results,
             stats=stats,
             candidates=candidates,
-            children_name='województwach',
-            type='Polsce'
+            children_name='okręgach',
+            type='województwie'
         ))
+    v_results['Województwo'] = v
+    v_results['slug'] = slugify(v)
+    c_children.append(v_results)
+with open(os.path.join(out_dir, 'index.html'), 'w') as fc:
+    fc.write(template.render(
+        breadcrumb=[],
+        title='Polska',
+        headers=['Województwo'] + stats + candidates,
+        children=sorted(c_children, key=lambda k: locale.strxfrm(k['Województwo'])),
+        link='Województwo',
+        results=c_results,
+        stats=stats,
+        candidates=candidates,
+        children_name='województwach',
+        type='Polsce',
+        draw_map=True
+    ))

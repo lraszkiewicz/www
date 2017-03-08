@@ -14,25 +14,89 @@
     </style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
-        google.charts.load('current', {packages: ['corechart', 'bar']});
+        google.charts.load('current', {packages: ['geochart', 'corechart', 'bar']});
         google.charts.setOnLoadCallback(drawBasic);
 
         function drawBasic() {
             var data = google.visualization.arrayToDataTable([
-                ['Kandydat', 'Liczba głosów'],
+                ['Kandydat', 'Procent głosów'],
                 {% for candidate in candidates %}
-                    ['{{ candidate }}', {{ results[candidate] }}],
+                    ['{{ candidate }}', {{ '%0.4f' | format(results[candidate] / results['Głosy ważne']) }}],
                 {% endfor %}
             ]);
+            var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
+            formatter.format(data, 1);
+            var height = data.getNumberOfRows() * 41 + 30;
             var options = {
-                chartArea: {width: '50%'},
                 hAxis: {
-                    minValue: 0
-                }
+                    minValue: 0,
+                    maxValue: 1,
+                    format: 'percent'
+                },
+                legend: {
+                    position: 'none'
+                },
+                chartArea: {
+                    width: '50%'
+                },
+                height: height
             };
             var chart = new google.visualization.BarChart(document.getElementById('chart_div'));
             chart.draw(data, options);
         }
+
+        {% if draw_map %}
+            google.charts.setOnLoadCallback(drawRegionsMap);
+            function drawRegionsMap() {
+                var data = google.visualization.arrayToDataTable([
+                    ['Województwo', 'Frekwencja'],
+                    {% for x in children %}
+                        ['{{ x['Województwo'] }}', {{ '%0.4f' | format(x['Wydane karty'] / x['Uprawnieni']) }}],
+                    {% endfor %}
+                ]);
+                var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
+                formatter.format(data, 1);
+                var options = {
+                    'region': 'PL',
+                    'resolution': 'provinces',
+                    legend: {
+                        numberFormat: '#.##%'
+                    }
+                };
+                var chart = new google.visualization.GeoChart(document.getElementById('regions_div'));
+                chart.draw(data, options);
+                var d = {
+                        'PL-DS': 'dolnoslaskie',
+                        'PL-KP': 'kujawsko-pomorskie',
+                        'PL-LU': 'lubelskie',
+                        'PL-LB': 'lubuskie',
+                        'PL-LD': 'lodzkie',
+                        'PL-MA': 'malopolskie',
+                        'PL-MZ': 'mazowieckie',
+                        'PL-OP': 'opolskie',
+                        'PL-PK': 'podkarpackie',
+                        'PL-PD': 'podlaskie',
+                        'PL-PM': 'pomorskie',
+                        'PL-SL': 'slaskie',
+                        'PL-SK': 'swietokrzyskie',
+                        'PL-WN': 'warminsko-mazurskie',
+                        'PL-WP': 'wielkopolskie',
+                        'PL-ZP': 'zachodniopomorskie'
+                    };
+                google.visualization.events.addListener(chart, 'regionClick', function(e) {
+                    if (d[e['region']]) {
+                        window.location.href = './' + d[e['region']];
+                    }
+                });
+            }
+        {% endif %}
+
+        $(window).resize(function(){
+            drawBasic();
+            {% if draw_map %}
+                drawRegionsMap();
+            {% endif %}
+        });
     </script>
 </head>
 <body>
@@ -50,7 +114,11 @@
             {% endfor %}
             <li class="active">{{ title }}</li>
         </ol>
-        <div id="chart_div" style="height: 600px;"></div>
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <div id="chart_div" style="width: 100%;"></div>
+            </div>
+        </div>
         <div class="row">
             <div class="col-md-6">
                 <div class="page-header"><h3>Wyniki wyborów w {{ type }}</h3></div>
@@ -86,6 +154,11 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <div id="regions_div" style="width: 100%;"></div>
             </div>
         </div>
         <div class="page-header"><h3>Wyniki wyborów w {{ children_name }}</h3></div>
