@@ -81,7 +81,7 @@ for v in voievodeships:
                 with open(os.path.join(m_dir, 'index.html'), 'w') as fm:
                     fm.write(template.render(
                         breadcrumb=[('../../..', 'Polska'), ('../../', v), ('../', 'Okręg nr {}'.format(d))],
-                        title='m',
+                        title=m,
                         headers=['Nr obw.', 'Adres'] + stats + candidates,
                         children=municipalities[m],
                         link=''
