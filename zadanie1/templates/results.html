@@ -186,7 +186,7 @@
                         <tr>
                             {% for cell in headers %}
                                 {% if cell == link %}
-                                    <td><a href="./{{ row['slug'] }}">{{ row[cell] }}</a></td>
+                                    <td nowrap><a href="./{{ row['slug'] }}">{{ row[cell] }}</a></td>
                                 {% else %}
                                     <td>{{ row[cell] }}</td>
                                 {% endif %}
