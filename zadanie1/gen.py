@@ -88,9 +88,10 @@ for v in voievodeships:
             for row in municipalities[m_id][1]:
                 for x in stats + candidates:
                     m_results[x] += row[x]
-                    d_results[x] += row[x]
-                    v_results[x] += row[x]
-                    c_results[x] += row[x]
+                    if row['Nr okr.'] == d:
+                        d_results[x] += row[x]
+                        v_results[x] += row[x]
+                        c_results[x] += row[x]
             m_results['Gmina'] = m_name
             m_results['slug'] = slugify('{} {}'.format(m_name, m_id))
             d_children.append(m_results)
