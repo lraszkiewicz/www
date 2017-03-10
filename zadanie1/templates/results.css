@@ -7,6 +7,7 @@ nav {
 }
 
 .big-table {
+    width: 100%;
     overflow-x: auto;
 }
 
@@ -21,14 +22,18 @@ td, th {
 }
 
 .half {
-    width: 45%;
-    display: inline-block;
+    float: left;
 }
 
-#chart, #map {
-    width: 60%;
-    margin-left: auto;
-    margin-right: auto;
+@media screen and (min-width: 1001px) {
+    .half {
+        width: 50%;
+    }
+
+    #chart, #map {
+        width: 60%;
+        margin-left: 20%;
+    }
 }
 
 @media screen and (max-width: 1000px) {
