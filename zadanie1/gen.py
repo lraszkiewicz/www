@@ -65,7 +65,11 @@ if os.path.isdir(out_dir):
     shutil.rmtree(out_dir)
 os.makedirs(out_dir)
 
-with open('./templates/results.html') as f:
+with open('./templates/results.css') as f, open('./out/results.css', 'w') as f2:
+    f2.write(f.read())
+
+# with open('./templates/results.html') as f:
+with open('./templates/results_no_bootstrap.html') as f:
     template = Template(f.read())
 
 c_results = defaultdict(int)
@@ -120,16 +124,16 @@ for v in voievodeships:
                 children_name='gminach',
                 type='okręgu'
             ))
-        d_results['Nr okr.'] = d
+        d_results['Okręg'] = 'Okręg nr {}'.format(d)
         d_results['slug'] = slugify('Okręg {}'.format(d))
         v_children.append(d_results)
     with open(os.path.join(v_dir, 'index.html'), 'w') as fv:
         fv.write(template.render(
             breadcrumb=[('../', 'Polska')],
             title='{}'.format(v),
-            headers=['Nr okr.'] + stats + candidates,
+            headers=['Okręg'] + stats + candidates,
             children=sorted(v_children, key=lambda k: k['Nr okr.']),
-            link='Nr okr.',
+            link='Okręg',
             results=v_results,
             stats=stats,
             candidates=candidates,

@@ -1,0 +1,79 @@
+body {
+    font-family: sans-serif;
+}
+
+nav {
+    margin-bottom: 20px;
+}
+
+table {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+
+.big-table {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.half-table {
+    width: 100%;
+}
+
+td, th {
+    border: 1px solid lightgrey;
+    padding: 5px;
+}
+
+.half-table>th {
+    text-align: left;
+}
+
+.half-table>td, .half-table>th {
+
+}
+
+.half {
+    float: left;
+    margin-right: 1%;
+    margin-left: 1%;
+}
+
+.row {
+    clear: both;
+}
+
+@media screen and (min-width: 1001px) {
+    .half {
+        width: 48%;
+    }
+
+    #chart, #map {
+        width: 60%;
+        margin-left: 20%;
+    }
+}
+
+@media screen and (max-width: 1000px) {
+    .half {
+        width: 100%;
+    }
+
+    #chart, #map {
+        width: 100%;
+    }
+}
+
+@media print {
+    #chart {
+        width: 100%;
+    }
+
+    #map {
+        display: none;
+    }
+}
+
+td.nowrap {
+    white-space: nowrap;
+}
