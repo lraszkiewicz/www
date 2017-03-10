@@ -1,0 +1,55 @@
+body {
+    font-family: sans-serif;
+}
+
+nav {
+    margin-bottom: 20px;
+}
+
+.big-table {
+    overflow-x: auto;
+}
+
+table {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+
+td, th {
+    border: 1px solid lightgrey;
+    padding: 5px;
+}
+
+.half {
+    width: 45%;
+    display: inline-block;
+}
+
+#chart, #map {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media screen and (max-width: 1000px) {
+    .half {
+        width: 100%;
+    }
+
+    #chart, #map {
+        width: 100%;
+    }
+}
+
+@media print {
+    #chart {
+        width: 100%;
+    }
+    #map {
+        display: none;
+    }
+}
+
+td.nowrap {
+    white-space: nowrap;
+}

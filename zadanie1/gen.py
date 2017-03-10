@@ -65,7 +65,11 @@ if os.path.isdir(out_dir):
     shutil.rmtree(out_dir)
 os.makedirs(out_dir)
 
-with open('./templates/results.html') as f:
+with open('./templates/results.css') as f, open('./out/results.css', 'w') as f2:
+    f2.write(f.read())
+
+# with open('./templates/results.html') as f:
+with open('./templates/results_no_bootstrap.html') as f:
     template = Template(f.read())
 
 c_results = defaultdict(int)
