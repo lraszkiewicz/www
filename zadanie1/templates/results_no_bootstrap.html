@@ -41,7 +41,7 @@
                 },
                 series: [
                     {
-                        color: '#0000ff'
+                        color: '#49A5FB'
                     }
                 ],
                 bars: 'horizontal',
@@ -69,9 +69,11 @@
                         numberFormat: '#.##%'
                     },
                     colorAxis: {
-                        colors: ['#6666ff', '#000099']
+                        colors: ['#71B9FC', '#2191FB']
                     }
                 };
+                var map_element = $('#map');
+                map_element.height(map_element.width() * 0.624101);
                 var chart = new google.visualization.GeoChart(document.getElementById('map'));
                 chart.draw(data, options);
                 var d = {
@@ -110,7 +112,7 @@
 </head>
 <body>
     <nav class="row">
-        <h1>
+        <h1 class="center">
             <a href="
                 {% if breadcrumb %}
                     {{ breadcrumb[0][0] }}
@@ -119,6 +121,7 @@
                 {% endif %}
             ">Wybory Prezydenta Rzeczypospolitej Polskiej 2000</a>
         </h1>
+        <strong>Jesteś tutaj: </strong>
         {% for x in breadcrumb %}
             <a href="{{ x[0] }}">{{ x[1] }}</a> /
         {% endfor %}
