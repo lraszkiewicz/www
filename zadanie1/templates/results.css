@@ -63,7 +63,7 @@ td, th {
 
 @media screen and (max-width: 1000px) {
     .half {
-        width: 100%;
+        width: 98%;
     }
 
     #chart, #map {
