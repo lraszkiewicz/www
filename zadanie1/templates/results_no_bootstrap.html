@@ -41,7 +41,7 @@
                 },
                 series: [
                     {
-                        color: '#267114'
+                        color: '#0000ff'
                     }
                 ],
                 bars: 'horizontal',
@@ -67,6 +67,9 @@
                     resolution: 'provinces',
                     legend: {
                         numberFormat: '#.##%'
+                    },
+                    colorAxis: {
+                        colors: ['#6666ff', '#000099']
                     }
                 };
                 var chart = new google.visualization.GeoChart(document.getElementById('map'));
