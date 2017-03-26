@@ -26,10 +26,6 @@
             ]);
             var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
             formatter.format(data, 1);
-            var height = data.getNumberOfRows() * 35 + 30;
-            if ($("#chart").width() <= 700) {
-                height = data.getNumberOfRows() * 20 + 30;
-            }
             var options = {
                 hAxis: {
                     minValue: 0,
@@ -45,7 +41,7 @@
                     }
                 ],
                 bars: 'horizontal',
-                height: height
+                height: $("#chart").width() / 2.5
             };
             var chart = new google.charts.Bar(document.getElementById('chart'));
             chart.draw(data, google.charts.Bar.convertOptions(options));
