@@ -4,20 +4,21 @@
     <meta charset="UTF-8">
     <title>{{ title }} - Wybory Prezydenta Rzeczypospolitej Polskiej 2000</title>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="
-        {% if breadcrumb %}
-            {{ breadcrumb[0][0] }}/results.css
-        {% else %}
-            ./results.css
-        {% endif %}
-    ">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+{#    <link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/darkly/bootstrap.min.css" rel="stylesheet" integrity="sha384-S7YMK1xjUjSpEnF4P8hPUcgjXYLZKK3fQW1j5ObLSl787II9p8RO9XUGehRmKsxd" crossorigin="anonymous">#}
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        .table-no-header>tbody>tr:first-child>td, .table-no-header>tbody>tr:first-child>th {
+            border-top: 0;
+        }
+    </style>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
         google.charts.load('current', {packages: ['geochart', 'corechart', 'bar']});
-        google.charts.setOnLoadCallback(drawChart);
+        google.charts.setOnLoadCallback(drawBasic);
 
-        function drawChart() {
+        function drawBasic() {
             var data = google.visualization.arrayToDataTable([
                 ['', ''],
                 {% for candidate in candidates %}
@@ -27,9 +28,6 @@
             var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
             formatter.format(data, 1);
             var height = data.getNumberOfRows() * 35 + 30;
-            if ($("#chart").width() <= 700) {
-                height = data.getNumberOfRows() * 20 + 30;
-            }
             var options = {
                 hAxis: {
                     minValue: 0,
@@ -41,19 +39,19 @@
                 },
                 series: [
                     {
-                        color: '#49A5FB'
+                        color: '#267114'
                     }
                 ],
                 bars: 'horizontal',
                 height: height
             };
-            var chart = new google.charts.Bar(document.getElementById('chart'));
+            var chart = new google.charts.Bar(document.getElementById('chart_div'));
             chart.draw(data, google.charts.Bar.convertOptions(options));
         }
 
         {% if draw_map %}
-            google.charts.setOnLoadCallback(drawMap);
-            function drawMap() {
+            google.charts.setOnLoadCallback(drawRegionsMap);
+            function drawRegionsMap() {
                 var data = google.visualization.arrayToDataTable([
                     ['województwo', 'frekwencja'],
                     {% for x in children %}
@@ -67,14 +65,9 @@
                     resolution: 'provinces',
                     legend: {
                         numberFormat: '#.##%'
-                    },
-                    colorAxis: {
-                        colors: ['#71B9FC', '#2191FB']
                     }
                 };
-                var map_element = $('#map');
-                map_element.height(map_element.width() * 0.624101);
-                var chart = new google.visualization.GeoChart(document.getElementById('map'));
+                var chart = new google.visualization.GeoChart(document.getElementById('regions_div'));
                 chart.draw(data, options);
                 var d = {
                     'PL-DS': 'dolnoslaskie',
@@ -103,71 +96,84 @@
         {% endif %}
 
         $(window).resize(function(){
-            drawChart();
+            drawBasic();
             {% if draw_map %}
-                drawMap();
+                drawRegionsMap();
             {% endif %}
         });
     </script>
 </head>
 <body>
-    <nav class="row">
-        <h1 class="center">
-            <a href="
-                {% if breadcrumb %}
-                    {{ breadcrumb[0][0] }}
-                {% else %}
-                    .
-                {% endif %}
-            ">Wybory Prezydenta Rzeczypospolitej Polskiej 2000</a>
-        </h1>
-        <strong>Jesteś tutaj: </strong>
-        {% for x in breadcrumb %}
-            <a href="{{ x[0] }}">{{ x[1] }}</a> /
-        {% endfor %}
-        {{ title }}
-    </nav>
-    <div class="row" id="chart"></div>
-    <div class="row">
-        <div class="half half-left">
-            <h3>Wyniki wyborów w {{ type }}</h3>
-            <table class="half-table">
-                <tbody>
-                    {% for candidate in candidates %}
-                        <tr>
-                            <th>{{ candidate }}</th>
-                            <td>{{ results[candidate] }}</td>
-                            <td>{{ '%0.2f' | format(results[candidate] / results['Głosy ważne'] * 100.0) }}%</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div class="half half-right">
-            <h3>Statystyki</h3>
-            <div>
-                <table class="half-table">
-                    <tbody>
-                        {% for stat in stats %}
-                            <tr>
-                                <th>{{ stat }}</th>
-                                <td>{{ results[stat] }}</td>
-                            </tr>
-                        {% endfor %}
-                    <tr>
-                        <th>Frekwencja</th>
-                        <td>{{ '%0.2f' | format(results['Wydane karty'] / results['Uprawnieni'] * 100.0) }}%</td>
-                    </tr>
-                    </tbody>
-                </table>
+    <nav class="navbar navbar-default navbar-static-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="
+                    {% if breadcrumb %}
+                        {{ breadcrumb[0][0] }}
+                    {% else %}
+                        .
+                    {% endif %}
+                ">Wybory Prezydenta Rzeczypospolitej Polskiej 2000</a>
             </div>
         </div>
-    </div>
-    <div class="row" id="map"></div>
-    <div class="row">
-        <h3>Wyniki wyborów w {{ children_name }}</h3>
-        <div class="big-table">
-            <table>
+    </nav>
+    <div class="container-fluid">
+        <ol class="breadcrumb">
+            {% for x in breadcrumb %}
+                <li><a href="{{ x[0] }}">{{ x[1] }}</a></li>
+            {% endfor %}
+            <li class="active">{{ title }}</li>
+        </ol>
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <div id="chart_div" style="width: 100%;"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="page-header"><h3>Wyniki wyborów w {{ type }}</h3></div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-no-header">
+                        <tbody>
+                            {% for candidate in candidates %}
+                                <tr>
+                                    <th>{{ candidate }}</th>
+                                    <td>{{ results[candidate] }}</td>
+                                    <td>{{ '%0.2f' | format(results[candidate] / results['Głosy ważne'] * 100.0) }}%</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="page-header"><h3>Statystyki</h3></div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-no-header">
+                        <tbody>
+                            {% for stat in stats %}
+                                <tr>
+                                    <th>{{ stat }}</th>
+                                    <td>{{ results[stat] }}</td>
+                                </tr>
+                            {% endfor %}
+                        <tr>
+                            <th>Frekwencja</th>
+                            <td>{{ '%0.2f' | format(results['Wydane karty'] / results['Uprawnieni'] * 100.0) }}%</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <div id="regions_div" style="width: 100%;"></div>
+            </div>
+        </div>
+        <div class="page-header"><h3>Wyniki wyborów w {{ children_name }}</h3></div>
+        <div class="table-responsive">
+            <table class="table table-condensed table-hover table-bordered">
                 <thead>
                     <tr>
                         {% for cell in headers %}
@@ -180,7 +186,7 @@
                         <tr>
                             {% for cell in headers %}
                                 {% if cell == link %}
-                                    <td class="nowrap"><a href="./{{ row['slug'] }}">{{ row[cell] }}</a></td>
+                                    <td nowrap><a href="./{{ row['slug'] }}">{{ row[cell] }}</a></td>
                                 {% else %}
                                     <td>{{ row[cell] }}</td>
                                 {% endif %}
