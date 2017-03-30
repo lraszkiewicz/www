@@ -1,6 +1,9 @@
 **/.idea/**/workspace.xml
 **/.idea/**/tasks.xml
+**/__pycache__
+*.pyc
 lab1
 zadanie1/results
 zadanie1/out
 zadanie1/move_to_public.sh
+zadanie2/elections/excelDatabase
