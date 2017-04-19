@@ -6,32 +6,55 @@ class Candidate(models.Model):
     last_name = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.first_name + ' ' + self.last_name
+        return '{} {}'.format(self.first_name, self.last_name)
+
+
+class Voivodeship(models.Model):  # województwo
+    name = models.CharField(max_length=50, primary_key=True)
+
+    def __str__(self):
+        return 'Województwo {}'.format(self.name)
 
 
 class District(models.Model):  # okręg
     id = models.IntegerField(primary_key=True)
+
+    def __str__(self):
+        return 'Okręg nr {}'.format(self.id)
 
 
 class Municipality(models.Model):  # gmina
     id = models.CharField(max_length=6, primary_key=True)
     name = models.CharField(max_length=50)
 
+    def __str__(self):
+        return '{} ({})'.format(self.name, self.id)
 
-class Area(models.Model):  # obwód
+
+class Place(models.Model):  # obwód
     number = models.IntegerField()
     address = models.CharField(max_length=500)
-    municipality = models.ForeignKey('Municipality')
+    voivodeship = models.ForeignKey('Voivodeship')
     district = models.ForeignKey('District')
+    municipality = models.ForeignKey('Municipality')
+    eligible_voters = models.IntegerField()  # uprawnieni
+    issued_ballots = models.IntegerField()  # wydane karty
+    spoilt_ballots = models.IntegerField()  # głosy nieważne
+
+    def __str__(self):
+        return 'Obwód nr {} - {}'.format(self.number, self.municipality)
 
     class Meta:
-        unique_together = ('id', 'municipality')
+        unique_together = ('number', 'municipality', 'district')
 
 
 class Votes(models.Model):
     amount = models.IntegerField()
     candidate = models.ForeignKey('Candidate')
-    area = models.ForeignKey('Area')
+    place = models.ForeignKey('Place')
+
+    def __str__(self):
+        return '{} - {} głosów - {}'.format(self.candidate, self.amount, self.place)
 
     class Meta:
-        unique_together = ('candidate', 'area')
+        unique_together = ('candidate', 'place')

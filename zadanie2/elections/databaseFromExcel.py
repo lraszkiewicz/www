@@ -2,11 +2,9 @@ import os
 import sys
 import xlrd
 import locale
-import shutil
 
-from slugify import slugify
+from elections.models import *
 from collections import defaultdict
-from jinja2 import Template
 
 locale.setlocale(locale.LC_ALL, 'pl_PL.UTF-8')
 
@@ -60,99 +58,88 @@ else:
     print('Directory {} does not exist.'.format(results_dir))
     sys.exit(0)
 
-if os.path.isdir(out_dir):
-    shutil.rmtree(out_dir)
-os.makedirs(out_dir)
 
-with open('./templates/results.css') as f, open('./out/results.css', 'w') as f2:
-    f2.write(f.read())
+candidates2 = [
+    ('Dariusz Maciej', 'Grabowski'),
+    ('Piotr', 'Ikonowicz'),
+    ('Jarosław', 'Kalinowski'),
+    ('Janusz', 'Korwin-Mikke'),
+    ('Marian', 'Krzaklewski'),
+    ('Aleksander', 'Kwaśniewski'),
+    ('Andrzej', 'Lepper'),
+    ('Jan', 'Łopuszański'),
+    ('Andrzej Marian', 'Olechowski'),
+    ('Bogdan', 'Pawłowski'),
+    ('Lech', 'Wałęsa'),
+    ('Tadeusz Adam', 'Wilecki')
+]
 
-# with open('./templates/results_bootstrap.html') as f:
-with open('./templates/results.html') as f:
-    template = Template(f.read())
+for c in candidates2:
+    Candidate(first_name=c[0], last_name=c[1]).save()
 
-c_results = defaultdict(int)
-c_children = []
+v_set = set()
+d_set = set()
+m_set = set()
+places = []
 for v in voievodeships:
-    print(v)
-    v_dir = os.path.join(out_dir, slugify(v))
-    v_results = defaultdict(int)
-    v_children = []
-    os.makedirs(v_dir)
+    v_set.add(v)
     for d in sorted(voievodeships[v]):
-        d_dir = os.path.join(v_dir, slugify('Okręg {}'.format(d)))
-        d_results = defaultdict(int)
-        d_children = []
-        os.makedirs(d_dir)
+        d_set.add(d)
         for m_id, m_name in districts[d]:
-            m_dir = os.path.join(d_dir, slugify('{} {}'.format(m_name, m_id)))
-            m_results = defaultdict(int)
-            os.makedirs(m_dir)
+            m_set.add((m_id, m_name))
             for row in municipalities[m_id][1]:
-                for x in stats + candidates:
-                    m_results[x] += row[x]
-                    if row['Nr okr.'] == d:
-                        d_results[x] += row[x]
-                        v_results[x] += row[x]
-                        c_results[x] += row[x]
-            m_results['Gmina'] = m_name
-            m_results['slug'] = slugify('{} {}'.format(m_name, m_id))
-            d_children.append(m_results)
-            with open(os.path.join(m_dir, 'index.html'), 'w') as fm:
-                fm.write(template.render(
-                    breadcrumb=[('../../../', 'Polska'), ('../../', v), ('../', 'Okręg nr {}'.format(d))],
-                    title=m_name,
-                    headers=['Nr obw.', 'Adres'] + stats + candidates,
-                    children=sorted(municipalities[m_id][1], key=lambda k: k['Nr obw.']),
-                    results=m_results,
-                    stats=stats,
-                    candidates=candidates,
-                    children_name='obwodach',
-                    type='gminie'
-                ))
-        with open(os.path.join(d_dir, 'index.html'), 'w') as fd:
-            fd.write(template.render(
-                breadcrumb=[('../../', 'Polska'), ('../', v)],
-                title='Okręg nr {}'.format(d),
-                headers=['Gmina'] + stats + candidates,
-                children=sorted(d_children, key=lambda k: locale.strxfrm(k['Gmina'])),
-                link='Gmina',
-                results=d_results,
-                stats=stats,
-                candidates=candidates,
-                children_name='gminach',
-                type='okręgu'
-            ))
-        d_results['Okręg'] = 'Okręg nr {}'.format(d)
-        d_results['slug'] = slugify('Okręg {}'.format(d))
-        v_children.append(d_results)
-    with open(os.path.join(v_dir, 'index.html'), 'w') as fv:
-        fv.write(template.render(
-            breadcrumb=[('../', 'Polska')],
-            title='{}'.format(v),
-            headers=['Okręg'] + stats + candidates,
-            children=sorted(v_children, key=lambda k: k['Nr okr.']),
-            link='Okręg',
-            results=v_results,
-            stats=stats,
-            candidates=candidates,
-            children_name='okręgach',
-            type='województwie'
+                places.append((row, v))
+
+print('Dodaję województwa')
+Voivodeship.objects.bulk_create([Voivodeship(name=x) for x in sorted(v_set)])
+print('Dodaję okręgi')
+District.objects.bulk_create([District(id=x) for x in sorted(d_set)])
+print('Dodaję gminy')
+Municipality.objects.bulk_create([Municipality(id=x[0], name=x[1]) for x in sorted(m_set)])
+
+print('Przetwarzam kandydatów')
+candidate_map = {}
+for c in Candidate.objects.all():
+    candidate_map['{} {}'.format(c.first_name, c.last_name.upper())] = c
+
+print('Tworzę obwody')
+place_objects = []
+vote_objects = []
+place_map = {}
+for a in sorted(places, key=lambda x: (x[0]['Kod gminy'], x[0]['Nr obw.'])):
+    t = (a[0]['Nr obw.'], District.objects.filter(id=a[0]['Nr okr.']).first(), Municipality.objects.filter(id=a[0]['Kod gminy']).first())
+    if t not in place_map:
+        place_objects.append(Place(
+            number=a[0]['Nr obw.'],
+            address=a[0]['Adres'],
+            voivodeship=Voivodeship.objects.filter(name=a[1]).first(),
+            district=District.objects.filter(id=a[0]['Nr okr.']).first(),
+            municipality=Municipality.objects.filter(id=a[0]['Kod gminy']).first(),
+            eligible_voters=a[0]['Uprawnieni'],
+            issued_ballots=a[0]['Wydane karty'],
+            spoilt_ballots=a[0]['Głosy nieważne']
         ))
-    v_results['Województwo'] = v
-    v_results['slug'] = slugify(v)
-    c_children.append(v_results)
-with open(os.path.join(out_dir, 'index.html'), 'w') as fc:
-    fc.write(template.render(
-        breadcrumb=[],
-        title='Polska',
-        headers=['Województwo'] + stats + candidates,
-        children=sorted(c_children, key=lambda k: locale.strxfrm(k['Województwo'])),
-        link='Województwo',
-        results=c_results,
-        stats=stats,
-        candidates=candidates,
-        children_name='województwach',
-        type='Polsce',
-        draw_map=True
-    ))
+    place_map[t] = True
+print('Dodaję obwody')
+Place.objects.bulk_create(place_objects)
+
+print('Tworzę głosy')
+vote_map = {}
+for a in sorted(places, key=lambda x: (x[0]['Kod gminy'], x[0]['Nr obw.'])):
+    place = Place.objects.filter(
+        number=a[0]['Nr obw.'],
+        municipality=Municipality.objects.filter(id=a[0]['Kod gminy']).first(),
+        district=District.objects.filter(id=a[0]['Nr okr.']).first()
+    ).first()
+    for c in candidate_map:
+        t = (place, candidate_map[c])
+        if t not in vote_map:
+            vote_objects.append(Votes(
+                amount=a[0][c],
+                candidate=candidate_map[c],
+                place=place
+            ))
+        vote_map[t] = True
+
+print('Dodaję głosy')
+Votes.objects.bulk_create(vote_objects)
