@@ -1,11 +1,13 @@
 import locale
 
 from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from slugify import slugify
 
 from .models import *
+from .forms import *
 
 
 def generate_results_here(place_qs):
@@ -128,7 +130,7 @@ def district(request, d_id):
 def municipality(request, m_id):
     m = get_object_or_404(Municipality, id=m_id)
     results_here, stats_here = generate_results_here(Place.objects.filter(municipality=m))
-    children_results = [([(p.number, p.address)]
+    children_results = [(([(p.number, p.address, reverse(place, args=[p.id]))])
                          + generate_child_results(Place.objects.filter(id=p.id)))
                         for p in Place.objects.filter(municipality=m)]
     return render(request, 'elections/municipality.html', {
@@ -146,6 +148,22 @@ def municipality(request, m_id):
     })
 
 
+def place(request, p_id):
+    p = get_object_or_404(Place, id=p_id)
+    if not request.user.is_authenticated:
+        return HttpResponse('HTTP 401 Unauthorized', status=401)
+    if request.method == 'POST':
+        form = PlaceEditForm(request.POST, place=p)
+        if form.is_valid():
+            print(form.cleaned_data)
+            return redirect(municipality, m_id=p.municipality.id)
+    else:
+        form = PlaceEditForm(place=p)
+    return render(request, 'elections/place.html', {
+        'form': form
+    })
+
+
 def search(request):
     q = request.GET.get('q')
     if not q:
@@ -153,16 +171,13 @@ def search(request):
     locale.setlocale(locale.LC_COLLATE, 'pl_PL.UTF-8')
     results = []
     for m in Municipality.objects.filter(name__icontains=q):
-        results.append(
-            ('{} ({}) - {} - {}'.format(
-                m.name,
-                m.id,
-                ', '.join([x[0] for x in generate_breadcrumb_districts(Place.objects.filter(municipality=m))]),
-                ', '.join([x[0] for x in generate_breadcrumb_voivodeships(Place.objects.filter(municipality=m))]),
-            ),
-             reverse_municipality(m.id)))
+        results.append(('{} ({}) - {} - {}'.format(
+            m.name,
+            m.id,
+            ', '.join([x[0] for x in generate_breadcrumb_districts(Place.objects.filter(municipality=m))]),
+            ', '.join([x[0] for x in generate_breadcrumb_voivodeships(Place.objects.filter(municipality=m))]),
+        ), reverse_municipality(m.id)))
     return render(request, 'elections/search.html', {
         'q': q,
-        'search_results': sorted(results, key=lambda x: locale.strxfrm(x[0])
-        )
+        'search_results': sorted(results, key=lambda x: locale.strxfrm(x[0]))
     })

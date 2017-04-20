@@ -3,4 +3,12 @@
 {% block results_here_title %}gminie{% endblock %}
 {% block results_children_title %}obwodach{% endblock %}
 {% block children_table_header %}<th>Nr</th><th>Adres</th>{% endblock %}
-{% block first_column %}<td>{{ row.0.0 }}</td><td>{{ row.0.1 }}</td>{% endblock %}
+{% block first_column %}
+    {% if user.is_authenticated %}
+        <td><a href="{{ row.0.2 }}">{{ row.0.0 }}</a></td>
+        <td><a href="{{ row.0.2 }}">{{ row.0.1 }}</a></td>
+    {% else %}
+        <td>{{ row.0.0 }}</td>
+        <td>{{ row.0.1 }}</td>
+    {% endif %}
+{% endblock %}
