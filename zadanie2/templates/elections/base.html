@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ title }}{% endblock %} - Wybory Prezydenta Rzeczypospolitej Polskiej 2000</title>
+{#    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">#}
+    <link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/slate/bootstrap.min.css" rel="stylesheet" integrity="sha384-RpX8okQqCyUNG7PlOYNybyJXYTtGQH+7rIKiVvg1DLg6jahLEk47VvpUyS+E2/uJ" crossorigin="anonymous">
+{#    <link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/cerulean/bootstrap.min.css" rel="stylesheet" integrity="sha384-zF4BRsG/fLiTGfR9QL82DrilZxrwgY/+du4p/c7J72zZj+FLYq4zY00RylP9ZjiT" crossorigin="anonymous">#}
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {packages: ['geochart', 'corechart', 'bar']});
+        google.charts.setOnLoadCallback(drawChart);
+        function drawChart() {
+            var data = google.visualization.arrayToDataTable([
+                ['', ''],
+                {% for c in results_here %}
+                    ['{{ c.name }}', {{ c.result }}],
+                {% endfor %}
+            ]);
+            var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
+            formatter.format(data, 1);
+            var options = {
+                hAxis: {
+                    minValue: 0,
+                    maxValue: 1,
+                    format: 'percent'
+                },
+                legend: {
+                    position: 'none'
+                },
+                series: [
+                    {
+                        color: '#49A5FB'
+                    }
+                ],
+                bars: 'horizontal',
+                height: $("#chart").width() / 2.5
+            };
+            var chart = new google.charts.Bar(document.getElementById('chart'));
+            chart.draw(data, google.charts.Bar.convertOptions(options));
+        }
+        {% if map_data %}
+            google.charts.setOnLoadCallback(drawMap);
+            function drawMap() {
+                var data = google.visualization.arrayToDataTable([
+                    ['województwo', 'frekwencja'],
+                    {% for name, _, _, turnout in map_data %}
+                        ['{{ name }}', {{ turnout }}],
+                    {% endfor %}
+                ]);
+                var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
+                formatter.format(data, 1);
+                var options = {
+                    region: 'PL',
+                    resolution: 'provinces',
+                    legend: {
+                        numberFormat: '#.##%'
+                    },
+                    colorAxis: {
+                        colors: ['#71B9FC', '#2191FB']
+                    }
+                };
+                var map_element = $('#map');
+                map_element.height(map_element.width() * 0.624101);
+                var chart = new google.visualization.GeoChart(document.getElementById('map'));
+                chart.draw(data, options);
+                var d = {
+                    'PL-DS': 'dolnoslaskie',
+                    'PL-KP': 'kujawsko-pomorskie',
+                    'PL-LU': 'lubelskie',
+                    'PL-LB': 'lubuskie',
+                    'PL-LD': 'lodzkie',
+                    'PL-MA': 'malopolskie',
+                    'PL-MZ': 'mazowieckie',
+                    'PL-OP': 'opolskie',
+                    'PL-PK': 'podkarpackie',
+                    'PL-PD': 'podlaskie',
+                    'PL-PM': 'pomorskie',
+                    'PL-SL': 'slaskie',
+                    'PL-SK': 'swietokrzyskie',
+                    'PL-WN': 'warminsko-mazurskie',
+                    'PL-WP': 'wielkopolskie',
+                    'PL-ZP': 'zachodniopomorskie'
+                };
+                function getURL(v) {
+                    switch (v) {
+                        {% for _, slug, id, _ in map_data %}
+                            case '{{ slug }}':
+                                return '{{ id }}';
+                        {% endfor %}
+                    }
+                }
+                google.visualization.events.addListener(chart, 'regionClick', function(e) {
+                    if (d[e['region']]) {
+                        window.location.href = getURL(d[e['region']]);
+                    }
+                });
+            }
+        {% endif %}
+        $(window).resize(function(){
+            drawChart();
+            {% if draw_map %}
+                drawMap();
+            {% endif %}
+        });
+    </script>
+</head>
+<body>
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="{% url 'index' %}">Wybory Prezydenta Rzeczypospolitej Polskiej 2000</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <form class="navbar-form navbar-right" role="search" method="get" action="{% url 'search' %}">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Gmina" name="q" required />
+                                <div class="input-group-btn">
+                                    <button class="btn btn-default" type="submit">
+                                        <span class="glyphicon glyphicon-search"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </li>
+                    <li>
+                        {% block navbar_login %}
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'logout' %}?next={{ request.path }}">
+                                    <span class="glyphicon glyphicon-user"></span>
+                                    Wyloguj ({{ user.username }})
+                                </a>
+                            {% else %}
+                                <a href="{% url 'login' %}?next={{ request.path }}">
+                                    <span class="glyphicon glyphicon-user"></span>
+                                    Zaloguj
+                                </a>
+                            {% endif %}
+                        {% endblock %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid">
+        {% block content %}
+            <ol class="breadcrumb">
+                {% for x in breadcrumb|slice:":-1" %}
+                    <li>
+                        <a href="{{ x.0.1 }}">{{ x.0.0 }}</a><!--
+                     -->{% for name, url in x|slice:"1:" %}, <a href="{{ url }}">{{ name }}</a>{% endfor %}
+                    </li>
+                {% endfor %}
+                {% with breadcrumb|last as active %}
+                    <li class="active">{{ active }}</li>
+                {% endwith %}
+            </ol>
+            <div class="row">
+                <div class="col-md-6 col-md-offset-3">
+                    <div id="chart"></div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h3>Wyniki wyborów w {% block results_here_title %}{% endblock %}</h3>
+                    <table class="table table-striped table-hover"><tbody>
+                        {% for c in results_here %}
+                            <tr>
+                                <th>{{ c.name }}</th>
+                                <td>{{ c.votes }}</td>
+                                <td>{{ c.result_percent|floatformat:"2" }}%</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody></table>
+                </div>
+                <div class="col-md-6">
+                    <h3>Statystyki</h3>
+                    <table class="table table-striped table-hover"><tbody>
+                        <tr>
+                            <th>Uprawnieni</th>
+                            <td>{{ stats_here.eligible_voters }}</td>
+                        </tr>
+                        <tr>
+                            <th>Wydane karty</th>
+                            <td>{{ stats_here.issued_ballots }}</td>
+                        </tr>
+                        <tr>
+                            <th>Głosy oddane</th>
+                            <td>{{ stats_here.casted_ballots }}</td>
+                        </tr>
+                        <tr>
+                            <th>Głosy ważne</th>
+                            <td>{{ stats_here.valid_ballots }}</td>
+                        </tr>
+                        <tr>
+                            <th>Głosy nieważne</th>
+                            <td>{{ stats_here.spoilt_ballots }}</td>
+                        </tr>
+                        <tr>
+                            <th>Frekwencja</th>
+                            <td>{{ stats_here.turnout_percent|floatformat:"2" }}%</td>
+                        </tr>
+                    </tbody></table>
+                </div>
+            </div>
+            {% if map_data %}
+                <div class="row">
+                    <div class="col-md-6 col-md-offset-3">
+                        <div id="map"></div>
+                    </div>
+                </div>
+            {% endif %}
+            <h3>Wyniki wyborów w {% block results_children_title %}{% endblock %}</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-condensed">
+                    <thead>
+                        <tr>
+                            {% block children_table_header %}{% endblock %}
+                            <th>Uprawnieni</th>
+                            <th>Wydane karty</th>
+                            <th>Głosy oddane</th>
+                            <th>Głosy ważne</th>
+                            <th>Głosy nieważne</th>
+                            {% for c in candidates %}
+                                <th>{{ c }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in children_results %}
+                            <tr>
+                                {% block first_column %}{% endblock %}
+                                {% for x in row|slice:"1:" %}
+                                    <td>{{ x }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endblock %}
+    </div>
+</body>
+</html>

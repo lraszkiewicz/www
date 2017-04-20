@@ -1,0 +1,6 @@
+{% extends "elections/base.html" %}
+
+{% block results_here_title %}okręgu{% endblock %}
+{% block results_children_title %}gminach{% endblock %}
+{% block children_table_header %}<th>Gmina</th>{% endblock %}
+{% block first_column %}<td class="text-nowrap"><a href="{{ row.0.1 }}">{{ row.0.0 }}</a></td>{% endblock %}

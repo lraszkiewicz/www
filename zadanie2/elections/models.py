@@ -10,7 +10,7 @@ class Candidate(models.Model):
 
 
 class Voivodeship(models.Model):  # województwo
-    name = models.CharField(max_length=50, primary_key=True)
+    name = models.CharField(max_length=50, unique=True)
 
     def __str__(self):
         return 'Województwo {}'.format(self.name)
@@ -28,7 +28,10 @@ class Municipality(models.Model):  # gmina
     name = models.CharField(max_length=50)
 
     def __str__(self):
-        return '{} ({})'.format(self.name, self.id)
+        return 'Gmina {} ({})'.format(self.name, self.id)
+
+    class Meta:
+        verbose_name_plural = "municipalities"
 
 
 class Place(models.Model):  # obwód
@@ -58,3 +61,4 @@ class Votes(models.Model):
 
     class Meta:
         unique_together = ('candidate', 'place')
+        verbose_name_plural = "votes"

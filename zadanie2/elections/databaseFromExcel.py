@@ -58,6 +58,12 @@ else:
     print('Directory {} does not exist.'.format(results_dir))
     sys.exit(0)
 
+Candidate.objects.all().delete()
+Voivodeship.objects.all().delete()
+District.objects.all().delete()
+Municipality.objects.all().delete()
+Place.objects.all().delete()
+Votes.objects.all().delete()
 
 candidates2 = [
     ('Dariusz Maciej', 'Grabowski'),
@@ -91,7 +97,7 @@ for v in voievodeships:
                 places.append((row, v))
 
 print('Dodaję województwa')
-Voivodeship.objects.bulk_create([Voivodeship(name=x) for x in sorted(v_set)])
+Voivodeship.objects.bulk_create([Voivodeship(name=x) for x in sorted(v_set, key=lambda y: locale.strxfrm(y))])
 print('Dodaję okręgi')
 District.objects.bulk_create([District(id=x) for x in sorted(d_set)])
 print('Dodaję gminy')
