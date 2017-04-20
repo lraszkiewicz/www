@@ -151,16 +151,30 @@ def municipality(request, m_id):
 def place(request, p_id):
     p = get_object_or_404(Place, id=p_id)
     if not request.user.is_authenticated:
-        return HttpResponse('HTTP 401 Unauthorized', status=401)
+        return redirect(reverse_municipality(p.municipality.id))
     if request.method == 'POST':
         form = PlaceEditForm(request.POST, place=p)
         if form.is_valid():
-            print(form.cleaned_data)
-            return redirect(municipality, m_id=p.municipality.id)
+            p.eligible_voters = int(form.cleaned_data['eligible_voters'])
+            p.issued_ballots = int(form.cleaned_data['issued_ballots'])
+            p.spoilt_ballots = int(form.cleaned_data['spoilt_ballots'])
+            p.save()
+            for c in Candidate.objects.all():
+                v = Votes.objects.get(candidate=c, place=p)
+                v.amount = form.cleaned_data['candidate_{}'.format(c.id)]
+                v.save()
+            return redirect(reverse_municipality(p.municipality.id))
     else:
         form = PlaceEditForm(place=p)
     return render(request, 'elections/place.html', {
-        'form': form
+        'form': form,
+        'breadcrumb': [
+            [('Polska', reverse('index'))],
+            generate_breadcrumb_voivodeships(Place.objects.filter(id=p_id)),
+            generate_breadcrumb_districts(Place.objects.filter(id=p_id)),
+            [(p.municipality.name, reverse_municipality(p.municipality.id))],
+            'Obwód nr {} - {}'.format(p.number, p.address)
+        ],
     })
 
 

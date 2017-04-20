@@ -155,7 +155,7 @@
         </div>
     </nav>
     <div class="container-fluid">
-        {% block content %}
+        {% block breadcrumb %}
             <ol class="breadcrumb">
                 {% for x in breadcrumb|slice:":-1" %}
                     <li>
@@ -167,6 +167,8 @@
                     <li class="active">{{ active }}</li>
                 {% endwith %}
             </ol>
+        {% endblock %}
+        {% block content %}
             <div class="row">
                 <div class="col-md-6 col-md-offset-3">
                     <div id="chart"></div>
