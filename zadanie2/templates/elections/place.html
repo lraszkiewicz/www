@@ -7,6 +7,7 @@
         <div class="col-md-6 col-md-offset-3">
             <form action="." method="post">
                 {% csrf_token %}
+                {{ form.non_field_errors }}
                 {% for field in form %}
                     <div class="form-group">
                         <div class="input-group">
@@ -14,9 +15,9 @@
                             <span class="input-group-addon">
                                 {{ field.label }}
                             </span>
-                            <input type="number" name="{{ field.name }}" value="{{ field.value }}"
+                            <input type="number" name="{{ field.html_name }}" value="{{ field.value }}"
                                    class="form-control" required id="{{ field.auto_id }}"
-                                   aria-describedby="addon_{{ field.auto_id }}"
+                                   aria-describedby="addon_{{ field.auto_id }}" title="{{ field.label }}"
                                    {% if field.field.disabled %}
                                        disabled
                                    {% endif %}

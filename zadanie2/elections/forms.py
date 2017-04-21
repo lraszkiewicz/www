@@ -5,18 +5,11 @@ from .models import Candidate, Votes
 
 
 class PlaceEditForm(forms.Form):
-    eligible_voters = forms.IntegerField(label='Uprawnieni',
-                                         widget=forms.NumberInput(attrs={'class': 'form-control'}))
-    issued_ballots = forms.IntegerField(label='Wydane karty',
-                                        widget=forms.NumberInput(attrs={'class': 'form-control'}))
-    casted_ballots = forms.IntegerField(label='Głosy oddane (głosy ważne + głosy nieważne)',
-                                        widget=forms.NumberInput(attrs={'class': 'form-control'}),
-                                        disabled=True)
-    valid_ballots = forms.IntegerField(label='Głosy ważne (suma głosów kandydatów)',
-                                       widget=forms.NumberInput(attrs={'class': 'form-control'}),
-                                       disabled=True)
-    spoilt_ballots = forms.IntegerField(label='Głosy nieważne',
-                                        widget=forms.NumberInput(attrs={'class': 'form-control'}))
+    eligible_voters = forms.IntegerField(label='Uprawnieni',)
+    issued_ballots = forms.IntegerField(label='Wydane karty',)
+    casted_ballots = forms.IntegerField(label='Głosy oddane (głosy ważne + głosy nieważne)', disabled=True)
+    valid_ballots = forms.IntegerField(label='Głosy ważne (suma głosów kandydatów)', disabled=True)
+    spoilt_ballots = forms.IntegerField(label='Głosy nieważne')
 
     def __init__(self, *args, **kwargs):
         p = kwargs.pop('place')
@@ -37,7 +30,6 @@ class PlaceEditForm(forms.Form):
 
     def clean(self):
         cleaned_data = super(PlaceEditForm, self).clean()
-        print(cleaned_data)
         valid_ballots = 0
         for x in cleaned_data:
             if 'candidate' in x:

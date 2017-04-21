@@ -21,8 +21,8 @@
                                 <span class="glyphicon glyphicon-user"></span>
                             </span>
                             <input type="text" name="{{ form.username.html_name }}" autofocus maxlength="254"
-                                   required id="id_username" class="form-control" placeholder="Login"
-                                   aria-describedby="addon_username" />
+                                   required id="{{ form.username.auto_id }}" class="form-control"
+                                   placeholder="{{ form.username.label }}" aria-describedby="addon_username" />
                         </div>
                     </div>
                     <div class="form-group">
@@ -32,8 +32,8 @@
                                 <span class="glyphicon glyphicon-lock"></span>
                             </span>
                             <input type="password" name="{{ form.password.html_name }}"
-                                   required id="id_password" class="form-control" placeholder="Hasło"
-                                   aria-describedby="addon_password" />
+                                   required id="{{ form.password.auto_id }}" class="form-control"
+                                   placeholder="{{ form.password.label }}" aria-describedby="addon_password" />
                         </div>
                     </div>
                     <button type="submit" class="btn btn-default">Zaloguj</button>
