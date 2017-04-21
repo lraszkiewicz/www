@@ -15,12 +15,26 @@
                     {% csrf_token %}
                     {{ form.non_field_errors }}
                     <div class="form-group">
-                        {{ form.username.errors }}
-                        <input type="text" name="{{ form.username.html_name }}" autofocus maxlength="254" required id="id_username" class="form-control" placeholder="Login"/>
+                        <div class="input-group">
+                            {{ form.username.errors }}
+                            <span class="input-group-addon" id="addon_username">
+                                <span class="glyphicon glyphicon-user"></span>
+                            </span>
+                            <input type="text" name="{{ form.username.html_name }}" autofocus maxlength="254"
+                                   required id="id_username" class="form-control" placeholder="Login"
+                                   aria-describedby="addon_username" />
+                        </div>
                     </div>
                     <div class="form-group">
-                        {{ form.password.errors }}
-                        <input type="password" name="{{ form.password.html_name }}" required id="id_password" class="form-control" placeholder="Hasło" />
+                        <div class="input-group">
+                            {{ form.password.errors }}
+                            <span class="input-group-addon" id="addon_password">
+                                <span class="glyphicon glyphicon-lock"></span>
+                            </span>
+                            <input type="password" name="{{ form.password.html_name }}"
+                                   required id="id_password" class="form-control" placeholder="Hasło"
+                                   aria-describedby="addon_password" />
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-default">Zaloguj</button>
                 </form>

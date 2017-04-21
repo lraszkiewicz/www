@@ -1,5 +1,6 @@
 import locale
 
+from django.contrib.auth.views import LoginView
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
@@ -195,3 +196,7 @@ def search(request):
         'q': q,
         'search_results': sorted(results, key=lambda x: locale.strxfrm(x[0]))
     })
+
+
+def login(request, *args, **kwargs):
+    return LoginView.as_view(**kwargs)(request, *args, **kwargs)

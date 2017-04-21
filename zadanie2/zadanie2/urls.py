@@ -22,6 +22,5 @@ urlpatterns = [
     url(r'^$', RedirectView.as_view(url='elections/')),
     url(r'^admin/', admin.site.urls),
     url(r'^elections/', include('elections.urls')),
-    url(r'^login/$', auth_views.login, name='login'),
     url(r'^logout/$', auth_views.logout, name='logout')
 ]
