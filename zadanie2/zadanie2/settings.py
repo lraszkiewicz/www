@@ -24,6 +24,7 @@ SECRET_KEY = '=_vkgsjdmxv$n5ydil@8o^gy9h_xa7-cfs_b_(xz1__wujt=e='
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+USE_DEBUG_TOOLBAR = False
 
 ALLOWED_HOSTS = []
 
@@ -120,3 +121,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# django debug toolbar
+
+if USE_DEBUG_TOOLBAR:
+    INTERNAL_IPS = ['127.0.0.1']
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE = ['debug_toolbar.middleware.DebugToolbarMiddleware'] + MIDDLEWARE
