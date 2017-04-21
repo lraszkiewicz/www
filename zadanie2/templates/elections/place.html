@@ -9,11 +9,20 @@
                 {% csrf_token %}
                 {% for field in form %}
                     <div class="form-group">
-                        {{ field.errors }}
-                        {{ field.label_tag }}
-                        {{ field }}
+                        <div class="input-group">
+                            {{ field.errors }}
+                            <span class="input-group-addon">
+                                {{ field.label }}
+                            </span>
+                            <input type="number" name="{{ field.name }}" value="{{ field.value }}"
+                                   class="form-control" required id="{{ field.auto_id }}"
+                                   aria-describedby="addon_{{ field.auto_id }}"
+                                   {% if field.field.disabled %}
+                                       disabled
+                                   {% endif %}
+                            />
+                        </div>
                     </div>
-
                 {% endfor %}
                 <button type="submit" class="btn btn-default">Zapisz</button>
             </form>
