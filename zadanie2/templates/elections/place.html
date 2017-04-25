@@ -35,7 +35,9 @@
                     {% for url, name, delete_url in protocols %}
                         <tr>
                             <td><a href="{{ url }}">{{ name }}</a></td>
-                            <td class="text-right"><a href="{{ delete_url }}" class="btn btn-danger btn-xs">Usuń</a></td>
+                            {% if user.is_authenticated %}
+                                <td class="text-right"><a href="{{ delete_url }}" class="btn btn-danger btn-xs">Usuń</a></td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 </table>

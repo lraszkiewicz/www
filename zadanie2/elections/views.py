@@ -195,8 +195,9 @@ def place(request, p_id):
 def delete_file(request, f_id):
     f = get_object_or_404(ProtocolFile, id=f_id)
     p = f.place
-    f.file.delete()
-    f.delete()
+    if request.user.is_authenticated:
+        f.file.delete()
+        f.delete()
     return redirect(reverse('place', args=[p.id]))
 
 
