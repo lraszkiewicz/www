@@ -31,11 +31,14 @@
         <div class="col-md-6">
             <h3>Zdjęcia protokołu</h3>
             {% if protocols %}
-                <div class="list-group">
+                <table class="table table-hover">
                     {% for url, name in protocols %}
-                        <a href="{{ url }}" class="list-group-item">{{ name }}</a>
+                        <tr>
+                            <td><a href="{{ url }}">{{ name }}</a></td>
+                            <td><a href="." class="btn btn-danger btn-xs">Usuń</a></td>
+                        </tr>
                     {% endfor %}
-                </div>
+                </table>
             {% else %}
                 <p>Brak zdjęć protokołu w tym obwodzie.</p>
             {% endif %}

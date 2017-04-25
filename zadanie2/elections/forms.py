@@ -1,3 +1,5 @@
+import os
+
 from django import forms
 from django.db.models import Sum
 
@@ -37,8 +39,15 @@ class PlaceEditForm(forms.Form):
         if valid_ballots + int(cleaned_data['spoilt_ballots']) > int(cleaned_data['issued_ballots']):
             raise forms.ValidationError('Oddano więcej głosów niż wydano kart.')
         if int(cleaned_data['issued_ballots']) > cleaned_data['eligible_voters']:
-            raise forms.ValidationError('Wydano więcej kart niż było osób uprawnionych do głosowania')
+            raise forms.ValidationError('Wydano więcej kart niż było osób uprawnionych do głosowania.')
 
 
 class ProtocolUploadForm(forms.Form):
     file = forms.FileField(label='Zdjęcie protokołu (PDF lub JPG)')
+
+    def clean(self):
+        cleaned_data = super(ProtocolUploadForm, self).clean()
+        filename = cleaned_data['file'].name
+        ext = os.path.splitext(filename)[1].lower()
+        if ext not in ['.jpg', '.jpeg', '.pdf']:
+            raise forms.ValidationError('Niedozwolone rozszerzenie pliku.')

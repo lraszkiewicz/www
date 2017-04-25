@@ -77,3 +77,6 @@ def protocol_file_path(instance, filename):
 class ProtocolFile(models.Model):
     place = models.ForeignKey('Place')
     file = models.FileField(upload_to=protocol_file_path)
+
+    def __str__(self):
+        return os.path.basename(self.file.name)
