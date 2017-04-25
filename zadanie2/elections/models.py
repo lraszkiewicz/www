@@ -1,3 +1,5 @@
+import os
+
 from django.db import models
 
 
@@ -62,3 +64,16 @@ class Votes(models.Model):
     class Meta:
         unique_together = ('candidate', 'place')
         verbose_name_plural = "votes"
+
+
+def protocol_file_path(instance, filename):
+    return 'elections/protocols/protokol{}_{}{}'.format(
+        ProtocolFile.objects.filter(place=instance.place).count() + 1,
+        instance.place.id,
+        os.path.splitext(filename)[1]
+    )
+
+
+class ProtocolFile(models.Model):
+    place = models.ForeignKey('Place')
+    file = models.FileField(upload_to=protocol_file_path)

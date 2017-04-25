@@ -151,24 +151,34 @@ def municipality(request, m_id):
 
 def place(request, p_id):
     p = get_object_or_404(Place, id=p_id)
-    if not request.user.is_authenticated:
-        return redirect(reverse_municipality(p.municipality.id))
-    if request.method == 'POST':
-        form = PlaceEditForm(request.POST, place=p)
-        if form.is_valid():
-            p.eligible_voters = int(form.cleaned_data['eligible_voters'])
-            p.issued_ballots = int(form.cleaned_data['issued_ballots'])
-            p.spoilt_ballots = int(form.cleaned_data['spoilt_ballots'])
+
+    if request.method == 'POST' and 'results_form' in request.POST:
+        results_form = PlaceEditForm(request.POST, place=p)
+        if results_form.is_valid():
+            p.eligible_voters = int(results_form.cleaned_data['eligible_voters'])
+            p.issued_ballots = int(results_form.cleaned_data['issued_ballots'])
+            p.spoilt_ballots = int(results_form.cleaned_data['spoilt_ballots'])
             p.save()
             for c in Candidate.objects.all():
                 v = Votes.objects.get(candidate=c, place=p)
-                v.amount = form.cleaned_data['candidate_{}'.format(c.id)]
+                v.amount = results_form.cleaned_data['candidate_{}'.format(c.id)]
                 v.save()
             return redirect(reverse_municipality(p.municipality.id))
     else:
-        form = PlaceEditForm(place=p)
+        results_form = PlaceEditForm(place=p)
+
+    if request.method == 'POST' and 'file_form' in request.POST:
+        file_form = ProtocolUploadForm(request.POST, request.FILES)
+        if file_form.is_valid():
+            instance = ProtocolFile(place=p, file=request.FILES['file'])
+            instance.save()
+            return redirect(reverse(place, args=[p_id]))
+    else:
+        file_form = ProtocolUploadForm()
+
     return render(request, 'elections/place.html', {
-        'form': form,
+        'results_form': results_form,
+        'file_form': file_form,
         'breadcrumb': [
             [('Polska', reverse('index'))],
             generate_breadcrumb_voivodeships(Place.objects.filter(id=p_id)),
@@ -176,6 +186,8 @@ def place(request, p_id):
             [(p.municipality.name, reverse_municipality(p.municipality.id))],
             'Obwód nr {} - {}'.format(p.number, p.address)
         ],
+        'p_id': p_id,
+        'protocols': [(f.file.url, os.path.basename(f.file.name)) for f in ProtocolFile.objects.filter(place=p)]
     })
 
 

@@ -24,7 +24,7 @@ SECRET_KEY = '=_vkgsjdmxv$n5ydil@8o^gy9h_xa7-cfs_b_(xz1__wujt=e='
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-USE_DEBUG_TOOLBAR = False
+USE_DEBUG_TOOLBAR = True
 
 ALLOWED_HOSTS = []
 
@@ -122,6 +122,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 
 # django debug toolbar
 

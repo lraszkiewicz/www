@@ -1,7 +1,7 @@
 from django import forms
 from django.db.models import Sum
 
-from .models import Candidate, Votes
+from .models import Candidate, Votes, ProtocolFile
 
 
 class PlaceEditForm(forms.Form):
@@ -39,3 +39,6 @@ class PlaceEditForm(forms.Form):
         if int(cleaned_data['issued_ballots']) > cleaned_data['eligible_voters']:
             raise forms.ValidationError('Wydano więcej kart niż było osób uprawnionych do głosowania')
 
+
+class ProtocolUploadForm(forms.Form):
+    file = forms.FileField(label='Zdjęcie protokołu (PDF lub JPG)')
