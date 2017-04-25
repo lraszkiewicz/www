@@ -187,8 +187,17 @@ def place(request, p_id):
             'Obwód nr {} - {}'.format(p.number, p.address)
         ],
         'p_id': p_id,
-        'protocols': [(f.file.url, os.path.basename(f.file.name)) for f in ProtocolFile.objects.filter(place=p)]
+        'protocols': [(f.file.url, os.path.basename(f.file.name), reverse('delete_file', args=[f.id]))
+                      for f in ProtocolFile.objects.filter(place=p)]
     })
+
+
+def delete_file(request, f_id):
+    f = get_object_or_404(ProtocolFile, id=f_id)
+    p = f.place
+    f.file.delete()
+    f.delete()
+    return redirect(reverse('place', args=[p.id]))
 
 
 def search(request):

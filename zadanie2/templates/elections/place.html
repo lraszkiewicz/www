@@ -32,10 +32,10 @@
             <h3>Zdjęcia protokołu</h3>
             {% if protocols %}
                 <table class="table table-hover table-border-bottom">
-                    {% for url, name in protocols %}
+                    {% for url, name, delete_url in protocols %}
                         <tr>
                             <td><a href="{{ url }}">{{ name }}</a></td>
-                            <td class="text-right"><a href="." class="btn btn-danger btn-xs">Usuń</a></td>
+                            <td class="text-right"><a href="{{ delete_url }}" class="btn btn-danger btn-xs">Usuń</a></td>
                         </tr>
                     {% endfor %}
                 </table>

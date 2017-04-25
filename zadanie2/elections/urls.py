@@ -10,4 +10,5 @@ urlpatterns = [
     url(r'^gmina/[a-z\-]*(?P<m_id>[0-9]+)/$', views.municipality, name='municipality'),
     url(r'^obwod/(?P<p_id>[0-9]+)/$', views.place, name='place'),
     url(r'^search/$', views.search, name='search'),
+    url(r'^delete_file/(?P<f_id>[0-9]+)$', views.delete_file, name='delete_file')
 ]
