@@ -5,8 +5,8 @@
 {% block content %}
     <div class="row bottom-padding">
         <div class="col-md-6">
-            <h3>Wyniki</h3>
             {% if user.is_authenticated %}
+                <h3>Wyniki</h3>
                 <form action="." method="post" class="form-horizontal">
                     {% csrf_token %}
                     {{ form.non_field_errors }}
@@ -26,6 +26,44 @@
                     {% endfor %}
                     <button type="submit" class="btn btn-primary" name="results_form">Zapisz</button>
                 </form>
+            {% else %}
+                <h3>Statystyki</h3>
+                <table class="table table-striped table-hover table-border-bottom"><tbody>
+                    <tr>
+                        <th>Uprawnieni</th>
+                        <td>{{ stats_here.eligible_voters }}</td>
+                    </tr>
+                    <tr>
+                        <th>Wydane karty</th>
+                        <td>{{ stats_here.issued_ballots }}</td>
+                    </tr>
+                    <tr>
+                        <th>Głosy oddane</th>
+                        <td>{{ stats_here.casted_ballots }}</td>
+                    </tr>
+                    <tr>
+                        <th>Głosy ważne</th>
+                        <td>{{ stats_here.valid_ballots }}</td>
+                    </tr>
+                    <tr>
+                        <th>Głosy nieważne</th>
+                        <td>{{ stats_here.spoilt_ballots }}</td>
+                    </tr>
+                    <tr>
+                        <th>Frekwencja</th>
+                        <td>{{ stats_here.turnout_percent|floatformat:"2" }}%</td>
+                    </tr>
+                </tbody></table>
+                <h3>Wyniki</h3>
+                <table class="table table-striped table-hover table-border-bottom"><tbody>
+                    {% for c in results_here %}
+                        <tr>
+                            <th>{{ c.name }}</th>
+                            <td>{{ c.votes }}</td>
+                            <td>{{ c.result_percent|floatformat:"2" }}%</td>
+                        </tr>
+                    {% endfor %}
+                </tbody></table>
             {% endif %}
         </div>
         <div class="col-md-6">

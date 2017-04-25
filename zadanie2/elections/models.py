@@ -45,6 +45,7 @@ class Place(models.Model):  # obwód
     eligible_voters = models.IntegerField()  # uprawnieni
     issued_ballots = models.IntegerField()  # wydane karty
     spoilt_ballots = models.IntegerField()  # głosy nieważne
+    next_protocol_number = models.IntegerField(default=1)
 
     def __str__(self):
         return 'Obwód nr {} - {}'.format(self.number, self.municipality)
@@ -68,7 +69,7 @@ class Votes(models.Model):
 
 def protocol_file_path(instance, filename):
     return 'elections/protocols/protokol{}_{}{}'.format(
-        ProtocolFile.objects.filter(place=instance.place).count() + 1,
+        instance.place.next_protocol_number,
         instance.place.id,
         os.path.splitext(filename)[1]
     )

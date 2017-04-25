@@ -173,9 +173,7 @@
                      -->{% for name, url in x|slice:"1:" %}, <a href="{{ url }}">{{ name }}</a>{% endfor %}
                     </li>
                 {% endfor %}
-                {% with breadcrumb|last as active %}
-                    <li class="active">{{ active }}</li>
-                {% endwith %}
+                <li class="active">{{ breadcrumb|last }}</li>
             </ol>
         {% endblock %}
         {% block content %}

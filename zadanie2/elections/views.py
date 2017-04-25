@@ -152,7 +152,7 @@ def municipality(request, m_id):
 def place(request, p_id):
     p = get_object_or_404(Place, id=p_id)
 
-    if request.method == 'POST' and 'results_form' in request.POST:
+    if request.method == 'POST' and 'results_form' in request.POST and request.user.is_authenticated:
         results_form = PlaceEditForm(request.POST, place=p)
         if results_form.is_valid():
             p.eligible_voters = int(results_form.cleaned_data['eligible_voters'])
@@ -172,9 +172,16 @@ def place(request, p_id):
         if file_form.is_valid():
             instance = ProtocolFile(place=p, file=request.FILES['file'])
             instance.save()
+            p.next_protocol_number += 1
+            p.save()
             return redirect(reverse(place, args=[p_id]))
     else:
         file_form = ProtocolUploadForm()
+
+    if request.user.is_authenticated:
+        results_here, stats_here = None, None
+    else:
+        results_here, stats_here = generate_results_here(Place.objects.filter(id=p_id))
 
     return render(request, 'elections/place.html', {
         'results_form': results_form,
@@ -188,7 +195,9 @@ def place(request, p_id):
         ],
         'p_id': p_id,
         'protocols': [(f.file.url, os.path.basename(f.file.name), reverse('delete_file', args=[f.id]))
-                      for f in ProtocolFile.objects.filter(place=p)]
+                      for f in ProtocolFile.objects.filter(place=p)],
+        'results_here': results_here,
+        'stats_here': stats_here
     })
 
 
