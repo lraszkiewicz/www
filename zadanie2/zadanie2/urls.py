@@ -22,9 +22,9 @@ from django.conf.urls.static import static
 from . import settings
 
 urlpatterns = [
-    url(r'^$', RedirectView.as_view(url='elections/')),
+    url(r'^$', RedirectView.as_view(url='wybory/')),
     url(r'^admin/', admin.site.urls),
-    url(r'^elections/', include('elections.urls')),
+    url(r'^wybory/', include('elections.urls')),
     url(r'^logout/$', auth_views.logout, name='logout')
 ]
 

@@ -1,0 +1,11 @@
+.table-border-bottom>tbody>tr>td {
+    border-bottom: 1px solid #dddddd;
+}
+
+.table-border-bottom>tbody>tr>th {
+    border-bottom: 1px solid #dddddd;
+}
+
+.bottom-padding {
+    padding-bottom: 10px;
+}
