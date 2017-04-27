@@ -56,15 +56,25 @@ class PlaceEditTest(TestCase):
         User(username='admin', password='admin').save()
 
     def testEdit(self):
-        self.client.force_login(user=User.objects.first())
         c = Candidate.objects.first()
+        post_data = {
+            'results_form': '',
+            'eligible_voters': 400,
+            'issued_ballots': 300,
+            'spoilt_ballots': 50,
+            'candidate_{}'.format(c.id): 101
+        }
         self.client.post(
             '/wybory/obwod/{}/'.format(Place.objects.first().id),
-            {'results_form': '',
-             'eligible_voters': 400,
-             'issued_ballots': 300,
-             'spoilt_ballots': 50,
-             'candidate_{}'.format(c.id): 101}
+            post_data
+        )
+        p = Place.objects.first()
+        assert(p.eligible_voters != 400)
+
+        self.client.force_login(user=User.objects.first())
+        self.client.post(
+            '/wybory/obwod/{}/'.format(Place.objects.first().id),
+            post_data
         )
         p = Place.objects.first()
         v = Votes.objects.get(place=p, candidate=c)
@@ -72,13 +82,11 @@ class PlaceEditTest(TestCase):
         assert(p.issued_ballots == 300)
         assert(p.spoilt_ballots == 50)
         assert(v.amount == 101)
+
+        post_data['issued_ballots'] = 500
         self.client.post(
             '/wybory/obwod/{}/'.format(Place.objects.first().id),
-            {'results_form': '',
-             'eligible_voters': 400,
-             'issued_ballots': 500,
-             'spoilt_ballots': 50,
-             'candidate_{}'.format(c.id): 101}
+            post_data
         )
         p = Place.objects.first()
         assert(p.issued_ballots != 500)
