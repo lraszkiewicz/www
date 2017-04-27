@@ -82,3 +82,54 @@ class PlaceEditTest(TestCase):
         )
         p = Place.objects.first()
         assert(p.issued_ballots != 500)
+
+
+def results_and_stats(html):
+    parsed_html = BeautifulSoup(html, 'lxml')
+    results = parsed_html.find_all('table')[0]
+    stats = parsed_html.find_all('table')[1]
+    results = [int(r.find_all('td')[0].text) for r in results.find_all('tr')]
+    stats = [int(r.find('td').text) for r in stats.find_all('tr')[:-1]]
+    return results + stats
+
+
+class ViewTest(TestCase):
+    def setUp(self):
+        c = Candidate(first_name='Janusz', last_name='Korwin-Mikke')
+        c.save()
+        v = Voivodeship(name='mazowieckie')
+        v.save()
+        d = District(id=1)
+        d.save()
+        m = Municipality(id='123456', name='Warszawa')
+        m.save()
+        p = Place(
+            number=1,
+            address='Banacha 2',
+            voivodeship=v,
+            district_id=d.id,
+            municipality=m,
+            eligible_voters=323,
+            issued_ballots=300,
+            spoilt_ballots=42
+        )
+        p.save()
+        Votes(amount=100, candidate=c, place=p).save()
+        User(username='admin', password='admin').save()
+
+    def testResults(self):
+        v = Voivodeship.objects.first()
+        d = District.objects.first()
+        m = Municipality.objects.first()
+        correct_results_and_stats = [100, 323, 300, 142, 100, 42]
+        ras = results_and_stats(self.client.get('/wybory/').content)
+        assert(ras == correct_results_and_stats)
+        ras = results_and_stats(
+            self.client.get('/wybory/wojewodztwo/mazowieckie-{}/'.format(v.id)).content)
+        assert(ras == correct_results_and_stats)
+        ras = results_and_stats(
+            self.client.get('/wybory/okreg/{}/'.format(d.id)).content)
+        assert(ras == correct_results_and_stats)
+        ras = results_and_stats(
+            self.client.get('/wybory/gmina/warszawa-{}/'.format(m.id)).content)
+        assert(ras == correct_results_and_stats)
