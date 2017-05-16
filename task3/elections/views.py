@@ -2,7 +2,7 @@ import locale
 
 from django.contrib.auth.views import LoginView
 from django.db.models import Sum
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from slugify import slugify
@@ -12,7 +12,7 @@ from .forms import *
 
 
 def generate_results_here(place_qs):
-    votes_qs = Votes.objects.filter(place__in=place_qs)
+    votes_qs = Votes.objects.filter(parent__place__in=place_qs)
     all_votes = votes_qs.aggregate(Sum('amount'))['amount__sum']
     results_here = []
     for c in Candidate.objects.all():
@@ -23,8 +23,7 @@ def generate_results_here(place_qs):
             'result': votes / all_votes,
             'result_percent': 100.0 * votes / all_votes
         })
-
-    stats_here = place_qs.aggregate(
+    stats_here = Results.objects.filter(place__in=place_qs).aggregate(
         eligible_voters=Sum('eligible_voters'),
         issued_ballots=Sum('issued_ballots'),
         spoilt_ballots=Sum('spoilt_ballots')
@@ -84,57 +83,57 @@ def index(request):
     })
 
 
-def voivodeship(request, v_id):
+def voivodeship(request):
+    return render(request, 'elections/voivodeship.html', {})
+
+
+def voivodeship_api(request, v_id):
     v = get_object_or_404(Voivodeship, id=v_id)
-    results_here, stats_here = generate_results_here(Place.objects.filter(voivodeship=v))
-    districts = sorted(Place.objects.filter(voivodeship=v).values_list('district').distinct())
-    children_results = []
-    for d_id, in districts:
-        d = District.objects.get(id=d_id)
-        children_results.append([(str(d), reverse('district', args=[d_id]))]
-                                + generate_child_results(Place.objects.filter(district=d)))
-    return render(request, 'elections/voivodeship.html', {
+    resp = {
         'title': str(v),
         'breadcrumb': [[('Polska', reverse('index'))], v.name],
-        'candidates': [str(c) for c in Candidate.objects.all()],
-        'results_here': results_here,
-        'stats_here': stats_here,
-        'children_results': children_results
-    })
+        'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
+        'children': list(Place.objects.filter(voivodeship=v)
+                         .values('district__id').distinct().order_by('district__id')),
+        'children_stats': list(Results.objects.filter(place__voivodeship=v).order_by('place__district__id')
+                               .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
+        'children_votes': list(Votes.objects.filter(parent__place__voivodeship=v)
+                               .order_by('parent__place__district__id', 'candidate__id').values('amount'))
+    }
+    return JsonResponse(resp)
 
 
-def district(request, d_id):
+def district(request):
+    return render(request, 'elections/district.html', {})
+
+
+def district_api(request, d_id):
     d = get_object_or_404(District, id=d_id)
-    results_here, stats_here = generate_results_here(Place.objects.filter(district=d))
-    municipalities = Place.objects.filter(district=d).values_list('municipality').distinct()
-    children_results = []
-    for m_id, in municipalities:
-        m = Municipality.objects.get(id=m_id)
-        children_results.append([(m.name, reverse_municipality(m_id))]
-                                + generate_child_results(Place.objects.filter(municipality=m)))
-    locale.setlocale(locale.LC_COLLATE, 'pl_PL.UTF-8')
-    children_results = sorted(children_results, key=lambda x: locale.strxfrm(x[0][0]))
-    return render(request, 'elections/district.html', {
+    resp = {
         'title': str(d),
         'breadcrumb': [
             [('Polska', reverse('index'))],
             generate_breadcrumb_voivodeships(Place.objects.filter(district=d)),
             'okręg nr {}'.format(d_id)
         ],
-        'candidates': [str(c) for c in Candidate.objects.all()],
-        'results_here': results_here,
-        'stats_here': stats_here,
-        'children_results': children_results
-    })
+        'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
+        'children': list(Place.objects.filter(district=d)
+                         .values('municipality__id', 'municipality__name').distinct().order_by('municipality__id')),
+        'children_stats': list(Results.objects.filter(place__district=d).order_by('place__municipality__id')
+                               .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
+        'children_votes': list(Votes.objects.filter(parent__place__district=d)
+                               .order_by('parent__place__municipality__id', 'candidate__id').values('amount'))
+    }
+    return JsonResponse(resp)
 
 
-def municipality(request, m_id):
+def municipality(request):
+    return render(request, 'elections/municipality.html', {})
+
+
+def municipality_api(request, m_id):
     m = get_object_or_404(Municipality, id=m_id)
-    results_here, stats_here = generate_results_here(Place.objects.filter(municipality=m))
-    children_results = [(([(p.number, p.address, reverse(place, args=[p.id]))])
-                         + generate_child_results(Place.objects.filter(id=p.id)))
-                        for p in Place.objects.filter(municipality=m)]
-    return render(request, 'elections/municipality.html', {
+    resp = {
         'title': str(m),
         'breadcrumb': [
             [('Polska', reverse('index'))],
@@ -142,11 +141,14 @@ def municipality(request, m_id):
             generate_breadcrumb_districts(Place.objects.filter(municipality=m)),
             m.name
         ],
-        'candidates': [str(c) for c in Candidate.objects.all()],
-        'results_here': results_here,
-        'stats_here': stats_here,
-        'children_results': children_results
-    })
+        'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
+        'children': list(Place.objects.filter(municipality=m).order_by('number').values('number', 'address')),
+        'children_stats': list(Results.objects.filter(place__municipality=m).order_by('place__number')
+                               .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
+        'children_votes': list(Votes.objects.filter(parent__place__municipality=m)
+                               .order_by('parent__place__number', 'candidate__id').values('amount'))
+    }
+    return JsonResponse(resp)
 
 
 def place(request, p_id):
