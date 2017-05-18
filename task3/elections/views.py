@@ -35,8 +35,26 @@ def index(request):
     return render(request, 'elections/base.html')
 
 
+def results_to_dict(results_obj):
+    return {
+        'eligible_voters': results_obj.eligible_voters,
+        'issued_ballots': results_obj.issued_ballots,
+        'spoilt_ballots': results_obj.spoilt_ballots
+    }
+
+
+def votes_qs_to_dict(votes_qs):
+    return [
+        {
+            'name': str(v.candidate),
+            'votes': v.amount
+        }
+        for v in votes_qs.order_by('candidate__id')]
+
+
 def country_api(request):
     return JsonResponse({
+        'type': 'country',
         'title': 'Polska',
         'breadcrumb': ['Polska'],
         'results_title': 'Polsce',
@@ -56,7 +74,7 @@ def country_api(request):
             for c in Candidate.objects.all().order_by('id')
         ],
         'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
-        'children': list(Voivodeship.objects.all().order_by('id').values('name')),
+        'children': list(Voivodeship.objects.all().order_by('id').values('id', 'name')),
         'children_stats': list(Results.objects.filter(voivodeship__isnull=False).order_by('voivodeship__id')
                                .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
         'children_votes': list(Votes.objects.filter(parent__voivodeship__isnull=False)
@@ -70,8 +88,13 @@ def voivodeship_api(request, v_id):
                     .values('district__id').distinct().order_by('district__id'))
     children_ids = [d['district__id'] for d in children]
     return JsonResponse({
+        'type': 'voivodeship',
         'title': str(v),
         'breadcrumb': [[('Polska', reverse('index'))], v.name],
+        'results_title': 'województwie',
+        'children_title': 'okręgach',
+        'stats_here': results_to_dict(Results.objects.get(voivodeship=v)),
+        'results_here': votes_qs_to_dict(Votes.objects.filter(parent__voivodeship=v)),
         'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
         'children': children,
         'children_stats': list(Results.objects.filter(district__id__in=children_ids).order_by('district__id')
@@ -87,6 +110,7 @@ def district_api(request, d_id):
                     .values('municipality__id', 'municipality__name').distinct().order_by('municipality__id'))
     children_ids = [m['municipality__id'] for m in children]
     return JsonResponse({
+        'type': 'district',
         'title': str(d),
         'breadcrumb': [
             [('Polska', reverse('index'))],
@@ -106,6 +130,7 @@ def district_api(request, d_id):
 def municipality_api(request, m_id):
     m = get_object_or_404(Municipality, id=m_id)
     return JsonResponse({
+        'type': 'municipality',
         'title': str(m),
         'breadcrumb': [
             [('Polska', reverse('index'))],
