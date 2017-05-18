@@ -42,7 +42,11 @@ $(document).ready(function() {
         if (!loadedCharts || !showMap) {
             return;
         }
-        var data = google.visualization.arrayToDataTable(mapData);
+        var mapDataNew = [['województwo', 'frekwencja']];
+        for (var i = 0; i < mapData.length; ++i) {
+            mapDataNew.push([mapData[i][1], mapData[i][2]]);
+        }
+        var data = google.visualization.arrayToDataTable(mapDataNew);
         var formatter = new google.visualization.NumberFormat({pattern: '#.##%'});
         formatter.format(data, 1);
         var options = {
@@ -56,6 +60,7 @@ $(document).ready(function() {
             }
         };
         var map_element = $('#map');
+        map_element.show();
         map_element.height(map_element.width() * 0.624101);
         var chart = new google.visualization.GeoChart(document.getElementById('map'));
         chart.draw(data, options);
@@ -78,14 +83,15 @@ $(document).ready(function() {
             'PL-ZP': 'zachodniopomorskie'
         };
         function getURL(v) {
-            switch (v) {
-                case '{{ slug }}':
-                    return '{{ id }}';
+            for (var i = 0; i < mapData.length; ++i) {
+                if (mapData[i][1] === v) {
+                    return '/wybory/api/wojewodztwo/' + mapData[i][0] + '/';
+                }
             }
         }
         google.visualization.events.addListener(chart, 'regionClick', function(e) {
             if (d[e['region']]) {
-                window.location.href = getURL(d[e['region']]);
+                getFromAPI(getURL(d[e['region']]));
             }
         });
     }
@@ -95,18 +101,23 @@ $(document).ready(function() {
         drawMap();
     });
 
-    function getResults(url) {
-        var req = new XMLHttpRequest();
-        req.open('GET', url, false);
-        req.send();
-        if (req.status === 200)
-            var response = JSON.parse(req.responseText);
-        else
-            alert(req.status);
-        console.log(response);
+    function hideEverything() {
+        $('#breadcrumb-container').hide();
+        $('#results-div').hide();
+        $('#map').hide();
+        $('#search-container').hide();
+        $('#login-container').hide();
+        $('#login-error').hide();
+        $('#search-input').val('');
+        $('#id_username').val('');
+        $('#id_password').val('');
+    }
 
+    function showResults(response) {
+        $('#breadcrumb-container').show();
+        $('#results-div').show();
         $('title').text(response['title'] + ' - Wybory Prezydenta Rzeczypospolitej Polskiej 2000');
-        var breadcrumb = "";
+        var breadcrumb = '';
         for (var i = 0; i < response['breadcrumb'].length - 1; ++i) {
             breadcrumb += '<li>';
             for (var j = 0; j < response['breadcrumb'][i].length; ++j) {
@@ -152,6 +163,15 @@ $(document).ready(function() {
             case 'country':
                 big_table_headers += '<th>Województwo</th>';
                 break;
+            case 'voivodeship':
+                big_table_headers += '<th>Okręg</th>';
+                break;
+            case 'district':
+                big_table_headers += '<th>Nr</th><th>Gmina</th>';
+                break;
+            case 'municipality':
+                big_table_headers = '<th>Nr</th><th>Adres obwodu</th>';
+                break;
         }
         big_table_headers += '<th>Uprawnieni</th><th>Wydane karty</th><th>Głosy oddane</th><th>Głosy ważne</th><th>Głosy nieważne</th>';
         for (i = 0; i < response['candidates'].length; ++i) {
@@ -162,12 +182,28 @@ $(document).ready(function() {
         var votes_index = 0;
         var votes_row = '';
         var votes_sum = 0;
-        mapData = [['województwo', 'frekwencja']];
+        if (response['type'] === 'country') {
+            mapData = [];
+            showMap = true;
+        } else {
+            showMap = false;
+        }
         for (i = 0; i < response['children'].length; ++i) {
             big_table_body += '<tr>';
             switch (response['type']) {
                 case 'country':
                     big_table_body += '<td class="text-nowrap"><a href="/wybory/api/wojewodztwo/' + response['children'][i]['id'] + '/">' + response['children'][i]['name'] + '</a></td>';
+                    break;
+                case 'voivodeship':
+                    big_table_body += '<td class="text-nowrap"><a href="/wybory/api/okreg/' + response['children'][i]['district__id'] + '/">Okręg nr ' + response['children'][i]['district__id'] + '</a></td>';
+                    break;
+                case 'district':
+                    big_table_body += '<td class="text-nowrap"><a href="/wybory/api/gmina/' + response['children'][i]['municipality__id'] + '/">' + response['children'][i]['municipality__id'] + '</a></td>';
+                    big_table_body += '<td class="text-nowrap"><a href="/wybory/api/gmina/' + response['children'][i]['municipality__id'] + '/">' + response['children'][i]['municipality__name'] + '</a></td>';
+                    break;
+                case 'municipality':
+                    big_table_body += '<td class="text-nowrap"><a href="/wybory/api/obwod/' + response['children'][i]['id'] + '/">' + response['children'][i]['number'] + '</a></td>';
+                    big_table_body += '<td><a href="/wybory/api/obwod/' + response['children'][i]['id'] + '/">' + response['children'][i]['address'] + '</a></td>';
                     break;
             }
             votes_row = '';
@@ -177,7 +213,10 @@ $(document).ready(function() {
                 votes_sum += response['children_votes'][votes_index]['amount'];
                 ++votes_index;
             }
-            mapData.push([response['children'][i]['name'], (votes_sum + response['children_stats'][i]['spoilt_ballots']) / response['children_stats'][i]['eligible_voters']]);
+            if (response['type'] === 'country') {
+                mapData.push([response['children'][i]['id'], response['children'][i]['name'],
+                             (votes_sum + response['children_stats'][i]['spoilt_ballots']) / response['children_stats'][i]['eligible_voters']]);
+            }
             big_table_body += '<td>' + response['children_stats'][i]['eligible_voters'] + '</td>';
             big_table_body += '<td>' + response['children_stats'][i]['issued_ballots'] + '</td>';
             big_table_body += '<td>' + (votes_sum + response['children_stats'][i]['spoilt_ballots']) + '</td>';
@@ -186,15 +225,151 @@ $(document).ready(function() {
             big_table_body += votes_row;
             big_table_body += '</tr>';
         }
-        showMap = true;
         drawMap(mapData);
         $('#big-table-body').html(big_table_body);
     }
 
-    getResults('http://127.0.0.1:8000/wybory/api/kraj/');
+    function showSearchResults(response) {
+        $('#search-input').val(response['query']);
+        $('#search-container').show();
+        $('#search-title').text('Wyniki wyszukiwania gmina dla "' + response['query'] + '"');
+        if (response['search_results'].length === 0) {
+            $('#search-not-found').show();
+            $('#search-results').hide();
+            return;
+        } else {
+            $('#search-results').show();
+            $('#search-not-found').hide();
+        }
+        var results_html = '';
+        for (var i = 0; i < response['search_results'].length; ++i) {
+            results_html += '<a href="' + response['search_results'][i][1] + '" class="list-group-item">' + response['search_results'][i][0] + '</a>';
+        }
+        $('#search-results').html(results_html);
+    }
 
-    $('a').click(function() {
-        getResults(this.href);
-        return false;
-    });
+    function getFromAPI(url) {
+        var req = new XMLHttpRequest();
+        req.open('GET', url, true);
+        req.onreadystatechange = function() {
+            if (req.readyState !== 4)
+                return;
+
+            if (req.status === 200)
+                var response = JSON.parse(req.responseText);
+            else {
+                $('html').css('cursor', 'default');
+                alert(req.status);
+                return;
+            }
+            console.log(response);
+
+            showLoggedIn(response);
+            if (response['type'] === 'country') {
+                localStorage.setItem('lastCountryResponse', JSON.stringify(response));
+            }
+            if ($.inArray(response['type'], ['country', 'voivodeship', 'municipality', 'district']) !== -1) {
+                hideEverything();
+                showResults(response);
+            }
+            if (response['type'] === 'search_results') {
+                hideEverything();
+                showSearchResults(response);
+            }
+
+            setOnClicks();
+
+            $('html').css('cursor', 'default');
+        };
+        $('html').css('cursor', 'progress');
+        req.send();
+    }
+
+    function login(data) {
+        var req2 = new XMLHttpRequest();
+        req2.open('POST', '/wybory/api/login/', true);
+        req2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        req2.onreadystatechange = function() {
+            if (req2.readyState !== 4)
+                return;
+
+            if (req2.status === 200)
+                var response = JSON.parse(req2.responseText);
+            else {
+                $('html').css('cursor', 'default');
+                alert(req2.status);
+                return;
+            }
+            console.log(response);
+            if (!response['success']) {
+                $('#login-error').show();
+                showLoggedIn(response);
+                setOnClicks();
+            } else {
+                getFromAPI('/wybory/api/kraj/');
+            }
+
+            $('html').css('cursor', 'default');
+        };
+        $('html').css('cursor', 'progress');
+        req2.send(data);
+    }
+
+    function showLoginPage() {
+        hideEverything();
+        $('#auth-link').trigger('blur');
+        $('#login-container').show();
+    }
+
+    function showLoggedIn(response) {
+        var auth_link = $('#auth-link');
+        auth_link.trigger('blur');
+        if (response['is_authenticated']) {
+            auth_link.html('<span class="glyphicon glyphicon-user"></span> Wyloguj (' + response['username'] + ')');
+            auth_link.attr('href', '/wybory/api/logout/');
+        } else {
+            auth_link.html('<span class="glyphicon glyphicon-user"></span> Zaloguj');
+            auth_link.attr('href', '/wybory/api/login/');
+        }
+    }
+
+    function setOnClicks() {
+        $('a').off('click').on('click', function(e) {
+            e.preventDefault();
+            if (this.href.match('login/$')) {
+                showLoginPage();
+            } else {
+                getFromAPI(this.href);
+            }
+            return false;
+        });
+
+        $('#search-form').off('submit').on('submit', function(e) {
+            e.preventDefault();
+            getFromAPI(this.action + '?' + $('#search-form').serialize());
+            return false;
+        });
+
+        $('#login-form').off('submit').on('submit', function(e) {
+            e.preventDefault();
+            login($('#login-form').serialize());
+            return false;
+        })
+    }
+
+    hideEverything();
+
+    var lastCountryResponse = localStorage.getItem('lastCountryResponse');
+    if (lastCountryResponse !== null) {
+        console.log('Loading index from localStorage.');
+        lastCountryResponse = JSON.parse(lastCountryResponse);
+        console.log(lastCountryResponse);
+        hideEverything();
+        showLoggedIn(lastCountryResponse);
+        showResults(lastCountryResponse);
+        setOnClicks();
+    }
+
+    console.log('Loading index from server.');
+    getFromAPI('/wybory/api/kraj/');
 });

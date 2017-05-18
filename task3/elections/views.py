@@ -1,24 +1,28 @@
 import locale
 
+import time
+
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import *
 from .forms import *
 
 
 def reverse_voivodeship(v_id):
-    return reverse('voivodeship_api', args=[v_id]) + '/'
+    return reverse('voivodeship_api', args=[v_id])
 
 
 def reverse_district(d_id):
-    return reverse('district_api', args=[d_id]) + str(d_id) + '/'
+    return reverse('district_api', args=[d_id])
 
 
 def reverse_municipality(m_id):
-    return reverse('municipality_api', args=[m_id]) + str(m_id) + '/'
+    return reverse('municipality_api', args=[m_id])
 
 
 def generate_breadcrumb_voivodeships(place_qs):
@@ -78,7 +82,9 @@ def country_api(request):
         'children_stats': list(Results.objects.filter(voivodeship__isnull=False).order_by('voivodeship__id')
                                .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
         'children_votes': list(Votes.objects.filter(parent__voivodeship__isnull=False)
-                               .order_by('parent__voivodeship__id', 'candidate__id').values('amount'))
+                               .order_by('parent__voivodeship__id', 'candidate__id').values('amount')),
+        'is_authenticated': request.user.is_authenticated(),
+        'username': request.user.username
     })
 
 
@@ -90,7 +96,7 @@ def voivodeship_api(request, v_id):
     return JsonResponse({
         'type': 'voivodeship',
         'title': str(v),
-        'breadcrumb': [[('Polska', reverse('index'))], v.name],
+        'breadcrumb': [[('Polska', reverse('country_api'))], v.name],
         'results_title': 'województwie',
         'children_title': 'okręgach',
         'stats_here': results_to_dict(Results.objects.get(voivodeship=v)),
@@ -100,7 +106,9 @@ def voivodeship_api(request, v_id):
         'children_stats': list(Results.objects.filter(district__id__in=children_ids).order_by('district__id')
                                .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
         'children_votes': list(Votes.objects.filter(parent__district__id__in=children_ids)
-                               .order_by('parent__district__id', 'candidate__id').values('amount'))
+                               .order_by('parent__district__id', 'candidate__id').values('amount')),
+        'is_authenticated': request.user.is_authenticated(),
+        'username': request.user.username
     })
 
 
@@ -113,17 +121,23 @@ def district_api(request, d_id):
         'type': 'district',
         'title': str(d),
         'breadcrumb': [
-            [('Polska', reverse('index'))],
+            [('Polska', reverse('country_api'))],
             generate_breadcrumb_voivodeships(Place.objects.filter(district=d)),
             'okręg nr {}'.format(d_id)
         ],
+        'results_title': 'okręgu',
+        'children_title': 'gminach',
+        'stats_here': results_to_dict(Results.objects.get(district=d)),
+        'results_here': votes_qs_to_dict(Votes.objects.filter(parent__district=d)),
         'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
         'children': children,
         'children_stats': list(Results.objects.filter(municipality__id__in=children_ids)
                                .order_by('municipality__id')
                                .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
         'children_votes': list(Votes.objects.filter(parent__municipality__id__in=children_ids)
-                               .order_by('parent__municipality__id', 'candidate__id').values('amount'))
+                               .order_by('parent__municipality__id', 'candidate__id').values('amount')),
+        'is_authenticated': request.user.is_authenticated(),
+        'username': request.user.username
     })
 
 
@@ -133,17 +147,23 @@ def municipality_api(request, m_id):
         'type': 'municipality',
         'title': str(m),
         'breadcrumb': [
-            [('Polska', reverse('index'))],
+            [('Polska', reverse('country_api'))],
             generate_breadcrumb_voivodeships(Place.objects.filter(municipality=m)),
             generate_breadcrumb_districts(Place.objects.filter(municipality=m)),
             m.name
         ],
+        'results_title': 'gminie',
+        'children_title': 'okręgach',
+        'stats_here': results_to_dict(Results.objects.get(municipality=m)),
+        'results_here': votes_qs_to_dict(Votes.objects.filter(parent__municipality=m)),
         'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
-        'children': list(Place.objects.filter(municipality=m).order_by('number').values('number', 'address')),
+        'children': list(Place.objects.filter(municipality=m).order_by('number').values('number', 'address', 'id')),
         'children_stats': list(Results.objects.filter(place__municipality=m).order_by('place__number')
                                .values('eligible_voters', 'issued_ballots', 'spoilt_ballots')),
         'children_votes': list(Votes.objects.filter(parent__place__municipality=m)
-                               .order_by('parent__place__number', 'candidate__id').values('amount'))
+                               .order_by('parent__place__number', 'candidate__id').values('amount')),
+        'is_authenticated': request.user.is_authenticated(),
+        'username': request.user.username
     })
 
 
@@ -209,10 +229,10 @@ def delete_file(request, f_id):
     return redirect(reverse('place', args=[p.id]))
 
 
-def search(request):
+def search_api(request):
     q = request.GET.get('q')
     if not q:
-        return redirect(index)
+        return HttpResponseBadRequest()
     locale.setlocale(locale.LC_COLLATE, 'pl_PL.UTF-8')
     results = []
     for m in Municipality.objects.filter(name__icontains=q):
@@ -222,11 +242,36 @@ def search(request):
             ', '.join([x[0] for x in generate_breadcrumb_districts(Place.objects.filter(municipality=m))]),
             ', '.join([x[0] for x in generate_breadcrumb_voivodeships(Place.objects.filter(municipality=m))]),
         ), reverse_municipality(m.id)))
-    return render(request, 'elections/search.html', {
-        'q': q,
+    return JsonResponse({
+        'type': 'search_results',
+        'query': q,
         'search_results': sorted(results, key=lambda x: locale.strxfrm(x[0]))
     })
 
 
-def login(request, *args, **kwargs):
-    return LoginView.as_view(**kwargs)(request, *args, **kwargs)
+@csrf_exempt
+def login_api(request):
+    success = False
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        if username and password:
+            user = authenticate(username=username, password=password)
+            if user is not None and user.is_active:
+                login(request, user)
+                success = True
+        return JsonResponse({
+            'success': success,
+            'is_authenticated': request.user.is_authenticated(),
+            'username': request.user.username
+        })
+    return HttpResponseBadRequest()
+
+
+@csrf_exempt
+def logout_api(request):
+    logout(request)
+    return JsonResponse({
+        'is_authenticated': request.user.is_authenticated(),
+        'username': request.user.username
+    })

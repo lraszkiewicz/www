@@ -26,10 +26,10 @@
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <div class="navbar-right">
-                    <form class="navbar-form navbar-left" role="search" method="get" action="/wybory/api/search/">
+                    <form class="navbar-form navbar-left" role="search" method="get" action="/wybory/api/szukaj/" id="search-form">
                         <div class="input-group">
                             <input type="text" class="form-control" placeholder="Gmina"
-                                   name="q" required value="" />
+                                   name="q" required value="" id="search-input" />
                             <div class="input-group-btn">
                                 <button class="btn btn-default" type="submit">
                                     <span class="glyphicon glyphicon-search"></span>
@@ -39,10 +39,7 @@
                     </form>
                     <ul class="nav navbar-nav">
                         <li>
-                            <a href="/auth/" id="auth-link">
-                                <span class="glyphicon glyphicon-user"></span>
-                                Zaloguj
-                            </a>
+                            <a href="" id="auth-link"></a>
                         </li>
                     </ul>
                 </div>
@@ -108,6 +105,46 @@
                 </thead>
                 <tbody id="big-table-body"></tbody>
             </table>
+        </div>
+    </div>
+    <div class="container-fluid" id="search-container">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <h3 id="search-title"></h3>
+                <div class="list-group" id="search-results"></div>
+                <p id="search-not-found">Nie znaleziono żadnej gminy.</p>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="login-container">
+        <div class="row">
+            <div class="col-sm-4 col-sm-offset-4">
+                <h2>Logowanie</h2>
+                <form method="post" id="login-form" action="/wybory/api/login/">
+                    <p id="login-error">Niepoprawne dane logowania.</p>
+                    <div class="form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon" id="addon_username">
+                                <span class="glyphicon glyphicon-user"></span>
+                            </span>
+                            <input type="text" name="username" autofocus maxlength="254"
+                                   required id="id_username" class="form-control"
+                                   placeholder="Login" aria-describedby="addon_username" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon" id="addon_password">
+                                <span class="glyphicon glyphicon-lock"></span>
+                            </span>
+                            <input type="password" name="password"
+                                   required id="id_password" class="form-control"
+                                   placeholder="Hasło" aria-describedby="addon_password" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-default">Zaloguj</button>
+                </form>
+            </div>
         </div>
     </div>
 </body>
