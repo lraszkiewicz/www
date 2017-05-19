@@ -167,66 +167,99 @@ def municipality_api(request, m_id):
     })
 
 
+def place_api(request, p_id):
+    p = get_object_or_404(Place, id=p_id)
+    if request.method == 'POST':
+        pass
+    return JsonResponse({
+        'type': 'place_get',
+        'title': str(p),
+        'breadcrumb': [
+            [('Polska', reverse('country_api'))],
+            generate_breadcrumb_voivodeships(Place.objects.filter(id=p_id)),
+            generate_breadcrumb_districts(Place.objects.filter(id=p_id)),
+            [(p.municipality.name, reverse_municipality(p.municipality.id))],
+            'Obwód nr {} - {}'.format(p.number, p.address)
+        ],
+        'stats_here': results_to_dict(Results.objects.get(place=p)),
+        'results_here': votes_qs_to_dict(Votes.objects.filter(parent__place=p)),
+        'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
+        'is_authenticated': request.user.is_authenticated(),
+        'username': request.user.username
+    })
+
+
 def place(request, p_id):
     render(request, "")
-    # p = get_object_or_404(Place, id=p_id)
-    #
-    # if request.method == 'POST' and 'results_form' in request.POST and request.user.is_authenticated:
-    #     results_form = PlaceEditForm(request.POST, place=p)
-    #     if results_form.is_valid():
-    #         p.eligible_voters = int(results_form.cleaned_data['eligible_voters'])
-    #         p.issued_ballots = int(results_form.cleaned_data['issued_ballots'])
-    #         p.spoilt_ballots = int(results_form.cleaned_data['spoilt_ballots'])
-    #         p.save()
-    #         for c in Candidate.objects.all():
-    #             v = Votes.objects.get(candidate=c, place=p)
-    #             v.amount = results_form.cleaned_data['candidate_{}'.format(c.id)]
-    #             v.save()
-    #         return redirect(reverse_municipality(p.municipality.id))
-    # else:
-    #     results_form = PlaceEditForm(place=p)
-    #
-    # if request.method == 'POST' and 'file_form' in request.POST:
-    #     file_form = ProtocolUploadForm(request.POST, request.FILES)
-    #     if file_form.is_valid():
-    #         instance = ProtocolFile(place=p, file=request.FILES['file'])
-    #         instance.save()
-    #         p.next_protocol_number += 1
-    #         p.save()
-    #         return redirect(reverse(place, args=[p_id]))
-    # else:
-    #     file_form = ProtocolUploadForm()
-    #
-    # if request.user.is_authenticated:
-    #     results_here, stats_here = None, None
-    # else:
-    #     results_here, stats_here = generate_results_here(Place.objects.filter(id=p_id))
-    #
-    # return render(request, 'elections/place.html', {
-    #     'results_form': results_form,
-    #     'file_form': file_form,
-    #     'breadcrumb': [
-    #         [('Polska', reverse('index'))],
-    #         generate_breadcrumb_voivodeships(Place.objects.filter(id=p_id)),
-    #         generate_breadcrumb_districts(Place.objects.filter(id=p_id)),
-    #         [(p.municipality.name, reverse_municipality(p.municipality.id))],
-    #         'Obwód nr {} - {}'.format(p.number, p.address)
-    #     ],
-    #     'p_id': p_id,
-    #     'protocols': [(f.file.url, os.path.basename(f.file.name), reverse('delete_file', args=[f.id]))
-    #                   for f in ProtocolFile.objects.filter(place=p)],
-    #     'results_here': results_here,
-    #     'stats_here': stats_here
-    # })
+    p = get_object_or_404(Place, id=p_id)
+
+    if request.method == 'POST' and 'results_form' in request.POST and request.user.is_authenticated:
+        results_form = PlaceEditForm(request.POST, place=p)
+        if results_form.is_valid():
+            p.eligible_voters = int(results_form.cleaned_data['eligible_voters'])
+            p.issued_ballots = int(results_form.cleaned_data['issued_ballots'])
+            p.spoilt_ballots = int(results_form.cleaned_data['spoilt_ballots'])
+            p.save()
+            for c in Candidate.objects.all():
+                v = Votes.objects.get(candidate=c, place=p)
+                v.amount = results_form.cleaned_data['candidate_{}'.format(c.id)]
+                v.save()
+            return redirect(reverse_municipality(p.municipality.id))
+    else:
+        results_form = PlaceEditForm(place=p)
+
+    if request.method == 'POST' and 'file_form' in request.POST:
+        file_form = ProtocolUploadForm(request.POST, request.FILES)
+        if file_form.is_valid():
+            instance = ProtocolFile(place=p, file=request.FILES['file'])
+            instance.save()
+            p.next_protocol_number += 1
+            p.save()
+            return redirect(reverse(place, args=[p_id]))
+    else:
+        file_form = ProtocolUploadForm()
+
+    if request.user.is_authenticated:
+        results_here, stats_here = None, None
+    else:
+        results_here, stats_here = generate_results_here(Place.objects.filter(id=p_id))
+
+    return render(request, 'elections/place.html', {
+        'results_form': results_form,
+        'file_form': file_form,
+        'breadcrumb': [
+            [('Polska', reverse('index'))],
+            generate_breadcrumb_voivodeships(Place.objects.filter(id=p_id)),
+            generate_breadcrumb_districts(Place.objects.filter(id=p_id)),
+            [(p.municipality.name, reverse_municipality(p.municipality.id))],
+            'Obwód nr {} - {}'.format(p.number, p.address)
+        ],
+        'p_id': p_id,
+        'protocols': [(f.file.url, os.path.basename(f.file.name), reverse('delete_file', args=[f.id]))
+                      for f in ProtocolFile.objects.filter(place=p)],
+        'results_here': results_here,
+        'stats_here': stats_here
+    })
 
 
-def delete_file(request, f_id):
+def upload_file_api(request, p_id):
+    p = get_object_or_404(Place, id=p_id)
+    if request.method == 'POST':
+        file_form = ProtocolUploadForm(request.POST, request.FILES)
+        if file_form.is_valid():
+            instance = ProtocolFile(place=p, file=request.FILES['file'])
+            instance.save()
+            p.next_protocol_number += 1
+            p.save()
+    return place_api(request, p_id)
+
+
+def delete_file_api(request, f_id):
     f = get_object_or_404(ProtocolFile, id=f_id)
-    p = f.place
     if request.user.is_authenticated:
         f.file.delete()
         f.delete()
-    return redirect(reverse('place', args=[p.id]))
+    return place_api(request, f.place.id)
 
 
 def search_api(request):
@@ -261,6 +294,7 @@ def login_api(request):
                 login(request, user)
                 success = True
         return JsonResponse({
+            'type': 'login',
             'success': success,
             'is_authenticated': request.user.is_authenticated(),
             'username': request.user.username
@@ -272,6 +306,7 @@ def login_api(request):
 def logout_api(request):
     logout(request)
     return JsonResponse({
+        'type': 'logout',
         'is_authenticated': request.user.is_authenticated(),
         'username': request.user.username
     })

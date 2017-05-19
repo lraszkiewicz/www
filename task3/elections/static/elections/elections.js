@@ -108,6 +108,8 @@ $(document).ready(function() {
         $('#search-container').hide();
         $('#login-container').hide();
         $('#login-error').hide();
+        $('#place-container').hide();
+
         $('#search-input').val('');
         $('#id_username').val('');
         $('#id_password').val('');
@@ -248,6 +250,27 @@ $(document).ready(function() {
         $('#search-results').html(results_html);
     }
 
+    function showPlace(response) {
+        $('#place-container').show();
+        $('#place-form').replaceWith(placeFormClone.clone());
+        var validBallots = 0;
+        var formCandidates = '';
+        for (var i = 0; i < response['results_here'].length; ++i) {
+            validBallots += response['results_here'][i]['votes'];
+            formCandidates += '<div class="form-group"><label for="id_candidate_' + i + '" class="col-md-5 control-label">' + response['results_here'][i]['name'] + '</label>';
+            formCandidates += '<div class="col-md-7"><input type="number" name="candidate_' + i + '" value="' + response['results_here'][i]['votes'] + '" class="form-control" required id="id_candidate_' + i + '"/></div></div>';
+        }
+        $('#place-form').append(formCandidates);
+        if (!response['is_authenticated']) {
+            $('#place-form input').prop('disabled', true);
+        }
+        $('#id_eligible_voters').val(response['stats_here']['eligible_voters']);
+        $('#id_issued_ballots').val(response['stats_here']['issued_ballots']);
+        $('#id_casted_ballots').val(validBallots + response['stats_here']['spoilt_ballots']);
+        $('#id_valid_ballots').val(validBallots);
+        $('#id_spoilt_ballots').val(response['stats_here']['spoilt_ballots']);
+    }
+
     function getFromAPI(url) {
         var req = new XMLHttpRequest();
         req.open('GET', url, true);
@@ -271,10 +294,14 @@ $(document).ready(function() {
             if ($.inArray(response['type'], ['country', 'voivodeship', 'municipality', 'district']) !== -1) {
                 hideEverything();
                 showResults(response);
-            }
-            if (response['type'] === 'search_results') {
+            } else if (response['type'] === 'search_results') {
                 hideEverything();
                 showSearchResults(response);
+            } else if (response['type'] === 'place_get') {
+                hideEverything();
+                showPlace(response);
+            } else if (response['type'] === 'logout' && !response['is_authenticated']) {
+                $('#place-form input').prop('disabled', true);
             }
 
             setOnClicks();
@@ -369,6 +396,8 @@ $(document).ready(function() {
         showResults(lastCountryResponse);
         setOnClicks();
     }
+
+    var placeFormClone = $('#place-form').clone();
 
     console.log('Loading index from server.');
     getFromAPI('/wybory/api/kraj/');

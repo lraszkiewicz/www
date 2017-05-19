@@ -147,5 +147,56 @@
             </div>
         </div>
     </div>
+    <div class="container-fluid" id="place-container">
+        <div class="row bottom-padding">
+            <div class="col-md-6">
+                <h3>Wyniki</h3>
+                <form action="." method="post" class="form-horizontal" id="place-form">
+                    <div class="form-group">
+                        <label for="id_eligible_voters" class="col-md-5 control-label">Uprawnieni</label>
+                        <div class="col-md-7">
+                            <input type="number" name="eligible_voters" value=""
+                                   class="form-control" required id="id_eligible_voters"
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_issued_ballots" class="col-md-5 control-label">Wydane karty</label>
+                        <div class="col-md-7">
+                            <input type="number" name="issued_ballots" value=""
+                                   class="form-control" required id="id_issued_ballots"
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_casted_ballots" class="col-md-5 control-label">Głosy oddane (głosy ważne + głosy nieważne)</label>
+                        <div class="col-md-7">
+                            <input type="number" name="casted_ballots" value=""
+                                   class="form-control" required id="id_casted_ballots"
+                                   disabled
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_valid_ballots" class="col-md-5 control-label">Głosy ważne (suma głosów kandydatów)</label>
+                        <div class="col-md-7">
+                            <input type="number" name="valid_ballots" value=""
+                                   class="form-control" required id="id_valid_ballots"
+                                   disabled
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_spoilt_ballots" class="col-md-5 control-label">Głosy nieważne</label>
+                        <div class="col-md-7">
+                            <input type="number" name="spoilt_ballots" value=""
+                                   class="form-control" required id="id_spoilt_ballots"
+                            />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
