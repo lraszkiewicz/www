@@ -1,0 +1,21 @@
+{% extends 'elections/base.html' %}
+
+{% block title %}Wyszukiwanie "{{ q }}"{% endblock %}
+{% block breadcrumb %}{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-md-6 col-md-offset-3">
+            <h3>Wyniki wyszukiwania gmin dla "{{ q }}"</h3>
+            {% if search_results %}
+                <div class="list-group">
+                    {% for name, url in search_results %}
+                        <a href="{{ url }}" class="list-group-item">{{ name }}</a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Nie znaleziono żadnej gminy.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'elections/base.html' %}
+
+{% block title %}Zaloguj{% endblock %}
+{% block navbar_login %}{% endblock %}
+{% block breadcrumb %}{% endblock %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-sm-4 col-sm-offset-4">
+            {% if user.is_authenticated %}
+                Jesteś już zalogowany.
+            {% else %}
+                <h2>Logowanie</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.non_field_errors }}
+                    <div class="form-group">
+                        <div class="input-group">
+                            {{ form.username.errors }}
+                            <span class="input-group-addon" id="addon_username">
+                                <span class="glyphicon glyphicon-user"></span>
+                            </span>
+                            <input type="text" name="{{ form.username.html_name }}" autofocus maxlength="254"
+                                   required id="{{ form.username.auto_id }}" class="form-control"
+                                   placeholder="{{ form.username.label }}" aria-describedby="addon_username" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-group">
+                            {{ form.password.errors }}
+                            <span class="input-group-addon" id="addon_password">
+                                <span class="glyphicon glyphicon-lock"></span>
+                            </span>
+                            <input type="password" name="{{ form.password.html_name }}"
+                                   required id="{{ form.password.auto_id }}" class="form-control"
+                                   placeholder="{{ form.password.label }}" aria-describedby="addon_password" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-default">Zaloguj</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

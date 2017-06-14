@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Wybory Prezydenta Rzeczypospolitej Polskiej 2000</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootswatch/3.3.7/cerulean/bootstrap.min.css" rel="stylesheet" integrity="sha384-zF4BRsG/fLiTGfR9QL82DrilZxrwgY/+du4p/c7J72zZj+FLYq4zY00RylP9ZjiT" crossorigin="anonymous">
+    <link href="/static/elections/elections.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript" src="/static/elections/elections.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/wybory/api/kraj/">Wybory Prezydenta Rzeczypospolitej Polskiej 2000</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <div class="navbar-right">
+                    <form class="navbar-form navbar-left" role="search" method="get" action="/wybory/api/szukaj/" id="search-form">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Gmina"
+                                   name="q" required value="" id="search-input" />
+                            <div class="input-group-btn">
+                                <button class="btn btn-default" type="submit">
+                                    <span class="glyphicon glyphicon-search"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                    <ul class="nav navbar-nav">
+                        <li>
+                            <a href="" id="auth-link"></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid" id="breadcrumb-container">
+        <ol class="breadcrumb" id="breadcrumb"></ol>
+    </div>
+    <div class="container-fluid" id="results-div">
+        <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+                <div id="chart"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <h3 id="results-title"></h3>
+                <table class="table table-striped table-hover table-border-bottom">
+                    <tbody id="results-here"></tbody>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h3>Statystyki</h3>
+                <table class="table table-striped table-hover table-border-bottom"><tbody>
+                    <tr>
+                        <th>Uprawnieni</th>
+                        <td id="eligible-voters"></td>
+                    </tr>
+                    <tr>
+                        <th>Wydane karty</th>
+                        <td id="issued-ballots"></td>
+                    </tr>
+                    <tr>
+                        <th>Głosy oddane</th>
+                        <td id="casted-ballots"></td>
+                    </tr>
+                    <tr>
+                        <th>Głosy ważne</th>
+                        <td id="valid-ballots"></td>
+                    </tr>
+                    <tr>
+                        <th>Głosy nieważne</th>
+                        <td id="spoilt-ballots"></td>
+                    </tr>
+                    <tr>
+                        <th>Frekwencja</th>
+                        <td id="turnout-percent"></td>
+                    </tr>
+                </tbody></table>
+            </div>
+        </div>
+        <div class="row" id="map-row">
+            <div class="col-md-6 col-md-offset-3">
+                <div id="map"></div>
+            </div>
+        </div>
+        <h3 id="children-title"></h3>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover table-condensed">
+                <thead>
+                    <tr id="big-table-headers"></tr>
+                </thead>
+                <tbody id="big-table-body"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="container-fluid" id="search-container">
+        <div class="row">
+            <div class="col-md-6 col-md-offset-3">
+                <h3 id="search-title"></h3>
+                <div class="list-group" id="search-results"></div>
+                <p id="search-not-found">Nie znaleziono żadnej gminy.</p>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="login-container">
+        <div class="row">
+            <div class="col-sm-4 col-sm-offset-4">
+                <h2>Logowanie</h2>
+                <form method="post" id="login-form" action="/wybory/api/login/">
+                    <p id="login-error">Niepoprawne dane logowania.</p>
+                    <div class="form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon" id="addon_username">
+                                <span class="glyphicon glyphicon-user"></span>
+                            </span>
+                            <input type="text" name="username" autofocus maxlength="254"
+                                   required id="id_username" class="form-control"
+                                   placeholder="Login" aria-describedby="addon_username" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon" id="addon_password">
+                                <span class="glyphicon glyphicon-lock"></span>
+                            </span>
+                            <input type="password" name="password"
+                                   required id="id_password" class="form-control"
+                                   placeholder="Hasło" aria-describedby="addon_password" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-default">Zaloguj</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="place-container">
+        <div class="row bottom-padding">
+            <div class="col-md-6">
+                <h3>Wyniki</h3>
+                <form action="." method="post" class="form-horizontal" id="place-form">
+                    <div class="form-group">
+                        <label for="id_eligible_voters" class="col-md-5 control-label">Uprawnieni</label>
+                        <div class="col-md-7">
+                            <input type="number" name="eligible_voters" value=""
+                                   class="form-control" required id="id_eligible_voters"
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_issued_ballots" class="col-md-5 control-label">Wydane karty</label>
+                        <div class="col-md-7">
+                            <input type="number" name="issued_ballots" value=""
+                                   class="form-control" required id="id_issued_ballots"
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_casted_ballots" class="col-md-5 control-label">Głosy oddane (głosy ważne + głosy nieważne)</label>
+                        <div class="col-md-7">
+                            <input type="number" name="casted_ballots" value=""
+                                   class="form-control" required id="id_casted_ballots"
+                                   disabled
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_valid_ballots" class="col-md-5 control-label">Głosy ważne (suma głosów kandydatów)</label>
+                        <div class="col-md-7">
+                            <input type="number" name="valid_ballots" value=""
+                                   class="form-control" required id="id_valid_ballots"
+                                   disabled
+                            />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="id_spoilt_ballots" class="col-md-5 control-label">Głosy nieważne</label>
+                        <div class="col-md-7">
+                            <input type="number" name="spoilt_ballots" value=""
+                                   class="form-control" required id="id_spoilt_ballots"
+                            />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
