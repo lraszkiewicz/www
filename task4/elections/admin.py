@@ -3,6 +3,12 @@ from django.contrib import admin
 from .models import *
 
 
+@admin.register(Candidate)
+class CandidateAdmin(admin.ModelAdmin):
+    search_fields = ['first_name', 'last_name']
+    list_display = ['last_name', 'first_name']
+
+
 @admin.register(Voivodeship)
 class VoivodeshipAdmin(admin.ModelAdmin):
     search_fields = ['name']
@@ -13,14 +19,12 @@ class VoivodeshipAdmin(admin.ModelAdmin):
 class DistrictAdmin(admin.ModelAdmin):
     search_fields = ['id']
     list_display = ['id']
-    readonly_fields = ['id']
 
 
 @admin.register(Municipality)
 class MunicipalityAdmin(admin.ModelAdmin):
     search_fields = ['id', 'name']
     list_display = ['id', 'name']
-    readonly_fields = ['id']
 
 
 @admin.register(Place)
@@ -31,12 +35,24 @@ class PlaceAdmin(admin.ModelAdmin):
 
 
 class VotesInline(admin.StackedInline):
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_add_permission(self, request):
+        return False
+
     model = Votes
     readonly_fields = ['candidate']
 
 
 @admin.register(Results)
 class ResultsAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     def get_queryset(self, request):
         qs = super(ResultsAdmin, self).get_queryset(request)
         qs = qs.filter(place__isnull=False)
