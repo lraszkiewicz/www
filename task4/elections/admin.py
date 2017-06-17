@@ -89,5 +89,3 @@ class ResultsAdmin(admin.ModelAdmin):
                     'municipality_name', '_district_id', 'voivodeship_name']
     fields = ['eligible_voters', 'issued_ballots', 'spoilt_ballots']
     inlines = [VotesInline]
-
-admin.site.register(ProtocolFile)

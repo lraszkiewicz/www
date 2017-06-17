@@ -251,16 +251,33 @@ $(document).ready(function() {
     }
 
     function showPlace(response) {
+        $('#breadcrumb-container').show();
+        var breadcrumb = '';
+        for (var i = 0; i < response['breadcrumb'].length - 1; ++i) {
+            breadcrumb += '<li>';
+            for (var j = 0; j < response['breadcrumb'][i].length; ++j) {
+                if (j > 0) {
+                    breadcrumb += ', ';
+                }
+                breadcrumb += '<a href="' + response['breadcrumb'][i][j][1] + '">' + response['breadcrumb'][i][j][0] + '</a>';
+            }
+            breadcrumb += '</li>';
+        }
+        breadcrumb += '<li class="active">' + response['breadcrumb'][response['breadcrumb'].length - 1] + '</li>';
+        $('#breadcrumb').html(breadcrumb);
+
         $('#place-container').show();
         $('#place-form').replaceWith(placeFormClone.clone());
         var validBallots = 0;
         var formCandidates = '';
-        for (var i = 0; i < response['results_here'].length; ++i) {
+        for (i = 0; i < response['results_here'].length; ++i) {
             validBallots += response['results_here'][i]['votes'];
-            formCandidates += '<div class="form-group"><label for="id_candidate_' + i + '" class="col-md-5 control-label">' + response['results_here'][i]['name'] + '</label>';
-            formCandidates += '<div class="col-md-7"><input type="number" name="candidate_' + i + '" value="' + response['results_here'][i]['votes'] + '" class="form-control" required id="id_candidate_' + i + '"/></div></div>';
+            formCandidates += '<div class="form-group"><label for="id_candidate_' + response['results_here'][i]['candidate_id'] + '" class="col-md-5 control-label">' + response['results_here'][i]['name'] + '</label>';
+            formCandidates += '<div class="col-md-7"><input type="number" name="candidate_' + response['results_here'][i]['candidate_id'] + '" value="' + response['results_here'][i]['votes'] + '" class="form-control" required id="id_candidate_' + response['results_here'][i]['candidate_id'] + '"/></div></div>';
         }
         $('#place-form').append(formCandidates);
+        $('#place-form').append('<input type="hidden" name="place_id" value="' + response['place_id'] + '">');
+        $('#place-form').append('<button type="submit" class="btn btn-primary" id="place-form-submit">Zapisz</button>');
         if (!response['is_authenticated']) {
             $('#place-form input').prop('disabled', true);
         }
@@ -342,6 +359,27 @@ $(document).ready(function() {
         req2.send(data);
     }
 
+    function editPlace(data, place_id, municipality_url) {
+        var req2 = new XMLHttpRequest();
+        req2.open('POST', '/wybory/api/edytuj_obwod/', true);
+        req2.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+        req2.onreadystatechange = function() {
+            if (req2.readyState !== 4)
+                return;
+
+            if (req2.status !== 200) {
+                $('html').css('cursor', 'default');
+                alert(req2.status);
+                return;
+            }
+            getFromAPI(municipality_url);
+
+            $('html').css('cursor', 'default');
+        };
+        $('html').css('cursor', 'progress');
+        req2.send(data);
+    }
+
     function showLoginPage() {
         hideEverything();
         $('#auth-link').trigger('blur');
@@ -381,7 +419,13 @@ $(document).ready(function() {
             e.preventDefault();
             login($('#login-form').serialize());
             return false;
-        })
+        });
+
+        $('#place-form').off('submit').on('submit', function(e) {
+            e.preventDefault();
+            editPlace($('#place-form').serialize(), $('#place-form input[name=place_id]')[0].value, $('#breadcrumb a:last')[0].href);
+            return false;
+        });
     }
 
     hideEverything();

@@ -1,143 +1,149 @@
-from bs4 import BeautifulSoup
-
-from django.test import TestCase
 from django.contrib.auth.models import User
+from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 
-from .models import *
-
-
-def search_results(html):
-    parsed_html = BeautifulSoup(html, 'lxml')
-    return parsed_html\
-        .find('div', attrs={'class': 'list-group'})\
-        .find_all('a')
+from selenium import webdriver
+from selenium.webdriver.support.select import Select
+from time import sleep
 
 
-class SearchTest(TestCase):
+# czas sleepa przy przechodzeniu pomiędzy stronami admina
+SLEEP_TIME_CREATION = 1
+# czas sleepa przy przechodzeniu pomiędzy stronami klienta
+SLEEP_TIME_BROWSING = 1  # nie powinno być 0
+# czas sleepa przed zamknięciem przeglądarki po zakończeniu testowania
+SLEEP_TIME_EXIT = 2
+
+
+class SeleniumTestCase(StaticLiveServerTestCase):
     def setUp(self):
-        Municipality(id='123456', name='Abcdef').save()
-        Municipality(id='654321', name='Qwerty').save()
+        User.objects.create_superuser('admin', 'admin@admin.com', 'admin123')
+        self.browser = webdriver.Chrome()
+        super(SeleniumTestCase, self).setUp()
 
-    def testSearch(self):
-        r = search_results(self.client.get('/wybory/search/?q=abc').content)
-        assert(len(r) == 1)
-        assert('Abcdef' in r[0].text)
-        assert('123456' in r[0]['href'])
-        r = search_results(self.client.get('/wybory/search/?q=er').content)
-        assert(len(r) == 1)
-        assert('Qwerty' in r[0].text)
-        assert('654321' in r[0]['href'])
-        r = search_results(self.client.get('/wybory/search/?q=E').content)
-        assert(len(r) == 2)
+    # Test rozpoczyna się z pustą bazą danych.
+    # Tworzę przykładowe dane przeklikując się przez panel admina.
+    # Później sprawdzam, czy dane wyświetlone w kliencie się zgadzają.
+    def testEverything(self):
+        # Loguję się do django-admin.
+        browser = self.browser
+        browser.get(self.live_server_url + '/admin/')
+        browser.find_element_by_id('id_username').send_keys('admin')
+        browser.find_element_by_id('id_password').send_keys('admin123')
+        browser.find_element_by_css_selector('input[type=\'submit\']').click()
 
+        # W django-admin tworzę: województwo, okręg, gminę, obwód, dwóch kandydatów i wypełniam wyniki.
+        browser.find_element_by_link_text('Voivodeships').click()
+        browser.find_element_by_class_name('addlink').click()
+        browser.find_element_by_id('id_name').send_keys('kujawsko-pomorskie')
+        sleep(SLEEP_TIME_CREATION)
+        browser.find_element_by_name('_save').click()
+        browser.find_element_by_link_text('Home').click()
 
-class PlaceEditTest(TestCase):
-    def setUp(self):
-        c = Candidate(first_name='Janusz', last_name='Korwin-Mikke')
-        c.save()
-        v = Voivodeship(name='mazowieckie')
-        v.save()
-        d = District(id=1)
-        d.save()
-        m = Municipality(id='123456', name='Warszawa')
-        m.save()
-        p = Place(
-            number=1,
-            address='Banacha 2',
-            voivodeship=v,
-            district_id=d.id,
-            municipality=m,
-            eligible_voters=323,
-            issued_ballots=300,
-            spoilt_ballots=42
-        )
-        p.save()
-        Votes(amount=100, candidate=c, place=p).save()
-        User(username='admin', password='admin').save()
+        browser.find_element_by_link_text('Districts').click()
+        browser.find_element_by_class_name('addlink').click()
+        browser.find_element_by_id('id_id').send_keys('1')
+        sleep(SLEEP_TIME_CREATION)
+        browser.find_element_by_name('_save').click()
+        browser.find_element_by_link_text('Home').click()
 
-    def testEdit(self):
-        c = Candidate.objects.first()
-        post_data = {
-            'results_form': '',
-            'eligible_voters': 400,
-            'issued_ballots': 300,
-            'spoilt_ballots': 50,
-            'candidate_{}'.format(c.id): 101
-        }
-        self.client.post(
-            '/wybory/obwod/{}/'.format(Place.objects.first().id),
-            post_data
-        )
-        p = Place.objects.first()
-        assert(p.eligible_voters != 400)
+        browser.find_element_by_link_text('Municipalities').click()
+        browser.find_element_by_class_name('addlink').click()
+        browser.find_element_by_id('id_id').send_keys('123456')
+        browser.find_element_by_id('id_name').send_keys('Włocławek')
+        sleep(SLEEP_TIME_CREATION)
+        browser.find_element_by_name('_save').click()
+        browser.find_element_by_link_text('Home').click()
 
-        self.client.force_login(user=User.objects.first())
-        self.client.post(
-            '/wybory/obwod/{}/'.format(Place.objects.first().id),
-            post_data
-        )
-        p = Place.objects.first()
-        v = Votes.objects.get(place=p, candidate=c)
-        assert(p.eligible_voters == 400)
-        assert(p.issued_ballots == 300)
-        assert(p.spoilt_ballots == 50)
-        assert(v.amount == 101)
+        browser.find_element_by_link_text('Places').click()
+        browser.find_element_by_class_name('addlink').click()
+        browser.find_element_by_id('id_number').send_keys('1')
+        browser.find_element_by_id('id_address').send_keys('Jakiś adres')
+        Select(browser.find_element_by_id('id_voivodeship')).select_by_index(1)
+        Select(browser.find_element_by_id('id_district')).select_by_index(1)
+        Select(browser.find_element_by_id('id_municipality')).select_by_index(1)
+        sleep(SLEEP_TIME_CREATION)
+        browser.find_element_by_name('_save').click()
+        browser.find_element_by_link_text('Home').click()
 
-        post_data['issued_ballots'] = 500
-        self.client.post(
-            '/wybory/obwod/{}/'.format(Place.objects.first().id),
-            post_data
-        )
-        p = Place.objects.first()
-        assert(p.issued_ballots != 500)
+        browser.find_element_by_link_text('Candidates').click()
+        browser.find_element_by_class_name('addlink').click()
+        browser.find_element_by_id('id_first_name').send_keys('Janusz')
+        browser.find_element_by_id('id_last_name').send_keys('Korwin-Mikke')
+        sleep(SLEEP_TIME_CREATION)
+        browser.find_element_by_name('_save').click()
+        browser.find_element_by_link_text('Home').click()
 
+        browser.find_element_by_link_text('Candidates').click()
+        browser.find_element_by_class_name('addlink').click()
+        browser.find_element_by_id('id_first_name').send_keys('Lech')
+        browser.find_element_by_id('id_last_name').send_keys('Wałęsa')
+        sleep(SLEEP_TIME_CREATION)
+        browser.find_element_by_name('_save').click()
+        browser.find_element_by_link_text('Home').click()
 
-def results_and_stats(html):
-    parsed_html = BeautifulSoup(html, 'lxml')
-    results = parsed_html.find_all('table')[0]
-    stats = parsed_html.find_all('table')[1]
-    results = [int(r.find_all('td')[0].text) for r in results.find_all('tr')]
-    stats = [int(r.find('td').text) for r in stats.find_all('tr')[:-1]]
-    return results + stats
+        browser.find_element_by_link_text('Results').click()
+        browser.find_element_by_link_text('1').click()
+        browser.find_element_by_id('id_eligible_voters').clear()
+        browser.find_element_by_id('id_eligible_voters').send_keys('33333')
+        browser.find_element_by_id('id_issued_ballots').clear()
+        browser.find_element_by_id('id_issued_ballots').send_keys('22222')
+        browser.find_element_by_id('id_spoilt_ballots').clear()
+        browser.find_element_by_id('id_spoilt_ballots').send_keys('111')
+        browser.find_element_by_id('id_votes_set-0-amount').clear()
+        browser.find_element_by_id('id_votes_set-0-amount').send_keys('4242')
+        browser.find_element_by_id('id_votes_set-1-amount').clear()
+        browser.find_element_by_id('id_votes_set-1-amount').send_keys('1234')
+        sleep(SLEEP_TIME_CREATION)
+        browser.find_element_by_name('_save').click()
 
+        sleep(SLEEP_TIME_BROWSING)
+        # Wchodzę na stronę główną.
+        browser.get(self.live_server_url)
+        # Sprawdzam poprawność wyświetlonych wyników, następnie przechodzę do dziecka i tam robię to samo.
+        # Kończę w gminie.
+        levels = 4
+        for i in range(levels):
+            sleep(SLEEP_TIME_BROWSING)
 
-class ViewTest(TestCase):
-    def setUp(self):
-        c = Candidate(first_name='Janusz', last_name='Korwin-Mikke')
-        c.save()
-        v = Voivodeship(name='mazowieckie')
-        v.save()
-        d = District(id=1)
-        d.save()
-        m = Municipality(id='123456', name='Warszawa')
-        m.save()
-        p = Place(
-            number=1,
-            address='Banacha 2',
-            voivodeship=v,
-            district_id=d.id,
-            municipality=m,
-            eligible_voters=323,
-            issued_ballots=300,
-            spoilt_ballots=42
-        )
-        p.save()
-        Votes(amount=100, candidate=c, place=p).save()
-        User(username='admin', password='admin').save()
+            # Sprawdzam wyniki kandydatów.
+            results_here_rows = browser.find_element_by_id('results-here').find_elements_by_tag_name('tr')
+            results_here = {}
+            for row in results_here_rows:
+                results_here[row.find_element_by_tag_name('th').text] = int(row.find_elements_by_tag_name('td')[0].text)
+            assert(len(results_here) == 2)
+            assert(results_here['Janusz Korwin-Mikke'] == 4242)
+            assert(results_here['Lech Wałęsa'] == 1234)
 
-    def testResults(self):
-        v = Voivodeship.objects.first()
-        d = District.objects.first()
-        m = Municipality.objects.first()
-        correct_results_and_stats = [100, 323, 300, 142, 100, 42]
-        ras = results_and_stats(self.client.get('/wybory/').content)
-        assert(ras == correct_results_and_stats)
-        ras = results_and_stats(
-            self.client.get('/wybory/wojewodztwo/mazowieckie-{}/'.format(v.id)).content)
-        assert(ras == correct_results_and_stats)
-        ras = results_and_stats(
-            self.client.get('/wybory/okreg/{}/'.format(d.id)).content)
-        assert(ras == correct_results_and_stats)
-        ras = results_and_stats(
-            self.client.get('/wybory/gmina/warszawa-{}/'.format(m.id)).content)
-        assert(ras == correct_results_and_stats)
+            # Sprawdzam statystyki.
+            stats_here_rows = browser.find_element_by_id('stats-here').find_elements_by_tag_name('tr')
+            stats_here = {}
+            for row in stats_here_rows:
+                try:
+                    stats_here[row.find_element_by_tag_name('th').text] = int(row.find_element_by_tag_name('td').text)
+                except ValueError:  # frekewncja nie jest intem
+                    pass
+            assert(stats_here['Uprawnieni'] == 33333)
+            assert(stats_here['Wydane karty'] == 22222)
+            assert(stats_here['Głosy oddane'] == 4242 + 1234 + 111)
+            assert(stats_here['Głosy ważne'] == 4242 + 1234)
+            assert(stats_here['Głosy nieważne'] == 111)
+
+            # Sprawdzam tabelę z dziećmi.
+            child_results = dict(zip(
+                [e.text for e in browser.find_element_by_id('big-table-headers').find_elements_by_tag_name('th')],
+                [e.text for e in browser.find_element_by_id('big-table-body').find_element_by_tag_name('tr')
+                                        .find_elements_by_tag_name('td')]
+            ))
+            assert(child_results['Janusz Korwin-Mikke'] == '4242')
+            assert(child_results['Lech Wałęsa'] == '1234')
+            assert(child_results['Uprawnieni'] == '33333')
+            assert(child_results['Wydane karty'] == '22222')
+            assert(child_results['Głosy oddane'] == str(4242 + 1234 + 111))
+            assert(child_results['Głosy ważne'] == str(4242 + 1234))
+            assert(child_results['Głosy nieważne'] == '111')
+
+            # O ile nie jestem już w gminie, to przechodzę do dziecka.
+            if i != levels - 1:
+                browser.find_element_by_id('big-table-body').find_element_by_tag_name('a').click()
+
+        sleep(SLEEP_TIME_EXIT)

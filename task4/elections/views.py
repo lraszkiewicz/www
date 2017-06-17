@@ -4,7 +4,7 @@ import time
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.views import LoginView
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
@@ -51,6 +51,7 @@ def votes_qs_to_dict(votes_qs):
     return [
         {
             'name': str(v.candidate),
+            'candidate_id': v.candidate.id,
             'votes': v.amount
         }
         for v in votes_qs.order_by('candidate__id')]
@@ -169,8 +170,6 @@ def municipality_api(request, m_id):
 
 def place_api(request, p_id):
     p = get_object_or_404(Place, id=p_id)
-    if request.method == 'POST':
-        pass
     return JsonResponse({
         'type': 'place_get',
         'title': str(p),
@@ -185,61 +184,34 @@ def place_api(request, p_id):
         'results_here': votes_qs_to_dict(Votes.objects.filter(parent__place=p)),
         'candidates': list(Candidate.objects.all().order_by('id').values('first_name', 'last_name')),
         'is_authenticated': request.user.is_authenticated(),
-        'username': request.user.username
+        'username': request.user.username,
+        'place_id': p_id
     })
 
 
-def place(request, p_id):
-    render(request, "")
-    p = get_object_or_404(Place, id=p_id)
-
-    if request.method == 'POST' and 'results_form' in request.POST and request.user.is_authenticated:
-        results_form = PlaceEditForm(request.POST, place=p)
+@csrf_exempt
+def edit_place_api(request):
+    if request.method == 'POST' and request.user.is_authenticated:
+        post_copy = {}
+        for k in request.POST:
+            post_copy[k] = request.POST[k]
+        p = get_object_or_404(Place, id=post_copy.pop('place_id', -1))
+        results_form = PlaceEditForm(post_copy, place=p)
         if results_form.is_valid():
-            p.eligible_voters = int(results_form.cleaned_data['eligible_voters'])
-            p.issued_ballots = int(results_form.cleaned_data['issued_ballots'])
-            p.spoilt_ballots = int(results_form.cleaned_data['spoilt_ballots'])
-            p.save()
+            print(results_form.cleaned_data)
+            r = p.results
+            r.eligible_voters = int(results_form.cleaned_data['eligible_voters'])
+            r.issued_ballots = int(results_form.cleaned_data['issued_ballots'])
+            r.spoilt_ballots = int(results_form.cleaned_data['spoilt_ballots'])
+            r.save()
             for c in Candidate.objects.all():
-                v = Votes.objects.get(candidate=c, place=p)
-                v.amount = results_form.cleaned_data['candidate_{}'.format(c.id)]
+                v = Votes.objects.get(candidate=c, parent=r)
+                v.amount = int(results_form.cleaned_data['candidate_{}'.format(c.id)])
                 v.save()
-            return redirect(reverse_municipality(p.municipality.id))
-    else:
-        results_form = PlaceEditForm(place=p)
-
-    if request.method == 'POST' and 'file_form' in request.POST:
-        file_form = ProtocolUploadForm(request.POST, request.FILES)
-        if file_form.is_valid():
-            instance = ProtocolFile(place=p, file=request.FILES['file'])
-            instance.save()
-            p.next_protocol_number += 1
-            p.save()
-            return redirect(reverse(place, args=[p_id]))
-    else:
-        file_form = ProtocolUploadForm()
-
-    if request.user.is_authenticated:
-        results_here, stats_here = None, None
-    else:
-        results_here, stats_here = generate_results_here(Place.objects.filter(id=p_id))
-
-    return render(request, 'elections/place.html', {
-        'results_form': results_form,
-        'file_form': file_form,
-        'breadcrumb': [
-            [('Polska', reverse('index'))],
-            generate_breadcrumb_voivodeships(Place.objects.filter(id=p_id)),
-            generate_breadcrumb_districts(Place.objects.filter(id=p_id)),
-            [(p.municipality.name, reverse_municipality(p.municipality.id))],
-            'Obwód nr {} - {}'.format(p.number, p.address)
-        ],
-        'p_id': p_id,
-        'protocols': [(f.file.url, os.path.basename(f.file.name), reverse('delete_file', args=[f.id]))
-                      for f in ProtocolFile.objects.filter(place=p)],
-        'results_here': results_here,
-        'stats_here': stats_here
-    })
+            return HttpResponse()
+        else:
+            return HttpResponseBadRequest()
+    return HttpResponseBadRequest()
 
 
 def upload_file_api(request, p_id):
