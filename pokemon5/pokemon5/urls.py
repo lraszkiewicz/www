@@ -20,5 +20,6 @@ import trading.views
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^$', trading.views.main, name='main'),
+    url(r'^trainer/(?P<trainer_pk>[0-9]+)/$', trading.views.trainer, name='trainer'),
     url(r'^api/trade/$', trading.views.tradeAPI, name='tradeAPI'),
 ]

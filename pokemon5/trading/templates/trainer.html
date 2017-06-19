@@ -1,0 +1,34 @@
+{% load static %}
+
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Trainer: {{ trainer.name }}</title>
+        <link rel="stylesheet" href="{% static 'trading.css' %}">
+    </head>
+    <body>
+        <nav><a href="{% url 'main' %}">Home</a></nav>
+        <section>
+            <header><h1>Trainer: {{ trainer.name }}</h1></header>
+            {% if pokemons %}
+                <ul>
+                    {% for pokemon in pokemons %}
+                        <li>{{ pokemon.type.name }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                This trainer has no pokemons.
+            {% endif %}
+        </section>
+        <section>
+            <header><h3>Add a Pokemon</h3></header>
+            <form action="." method="post">
+                {% csrf_token %}
+                {{ add_pokemon_form.as_p }}
+                <input type="submit" value="Submit" />
+            </form>
+        </section>
+        <footer><div style="text-align: center;">&lt;&lt;&lt; Projekt sfinansowany przez Ligę Pokemonów &gt;&gt;&gt;</div></footer>
+    </body>
+</html>
